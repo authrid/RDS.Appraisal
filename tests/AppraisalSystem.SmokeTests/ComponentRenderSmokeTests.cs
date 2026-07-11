@@ -58,8 +58,8 @@ public sealed class ComponentRenderSmokeTests : TestContext
                     new SecondarySidebarItem("Menu 1", "/not-found", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
                     new SecondarySidebarItem("Menu 2", "/not-found", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
                 ]),
-            new SecondarySidebarItem("Memo", $"/pencarian-data/memo?selectedPublicId={publicId}", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
-            new SecondarySidebarItem("History", $"/pencarian-data/history?selectedPublicId={publicId}", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
+            new SecondarySidebarItem("Memo", $"/pencarian-data/{publicId}/memo", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
+            new SecondarySidebarItem("History", $"/pencarian-data/{publicId}/history", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
         };
 
         var cut = RenderComponent<AppSecondarySidebar>(parameters => parameters

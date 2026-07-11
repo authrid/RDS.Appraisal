@@ -1,5 +1,4 @@
 using AppraisalSystem.Web;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace AppraisalSystem.SmokeTests;
 
@@ -36,24 +35,23 @@ public sealed class AppRoutesSmokeTests
         Assert.Equal("/pencarian-data", AppRoutes.PencarianData.Main);
         Assert.Equal("/pencarian-data/create", AppRoutes.PencarianData.Create);
         Assert.Equal($"/pencarian-data/{publicId}", AppRoutes.PencarianData.Detail(publicId));
+        Assert.Equal($"/pencarian-data/{publicId}/memo", AppRoutes.PencarianData.MemoByPublicId(publicId));
+        Assert.Equal($"/pencarian-data/{publicId}/history", AppRoutes.PencarianData.HistoryByPublicId(publicId));
         Assert.Equal($"/pencarian-data/{publicId}/edit", AppRoutes.PencarianData.Edit(publicId));
-        Assert.Equal($"/pencarian-data?selectedPublicId={publicId}", AppRoutes.PencarianData.WithSelectedPublicId(publicId));
-        Assert.Equal($"/pencarian-data/memo?selectedPublicId={publicId}", AppRoutes.PencarianData.MemoWithSelectedPublicId(publicId));
-        Assert.Equal($"/pencarian-data/history?selectedPublicId={publicId}", AppRoutes.PencarianData.HistoryWithSelectedPublicId(publicId));
     }
 
     [Fact]
-    public void PencarianData_WorkspaceRoutes_KeepSelectedPublicIdAcrossMainMemoHistory()
+    public void PencarianData_WorkspaceRoutes_UseConsistentPathBasedShape()
     {
         const string selectedPublicId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
-        var mainRoute = AppRoutes.PencarianData.WithSelectedPublicId(selectedPublicId);
-        var memoRoute = AppRoutes.PencarianData.MemoWithSelectedPublicId(selectedPublicId);
-        var historyRoute = AppRoutes.PencarianData.HistoryWithSelectedPublicId(selectedPublicId);
+        var mainRoute = AppRoutes.PencarianData.Detail(selectedPublicId);
+        var memoRoute = AppRoutes.PencarianData.MemoByPublicId(selectedPublicId);
+        var historyRoute = AppRoutes.PencarianData.HistoryByPublicId(selectedPublicId);
 
-        Assert.Equal(selectedPublicId, QueryHelpers.ParseQuery(new Uri($"https://localhost{mainRoute}").Query)["selectedPublicId"].ToString());
-        Assert.Equal(selectedPublicId, QueryHelpers.ParseQuery(new Uri($"https://localhost{memoRoute}").Query)["selectedPublicId"].ToString());
-        Assert.Equal(selectedPublicId, QueryHelpers.ParseQuery(new Uri($"https://localhost{historyRoute}").Query)["selectedPublicId"].ToString());
+        Assert.Equal($"/pencarian-data/{selectedPublicId}", mainRoute);
+        Assert.Equal($"/pencarian-data/{selectedPublicId}/memo", memoRoute);
+        Assert.Equal($"/pencarian-data/{selectedPublicId}/history", historyRoute);
     }
 
     [Theory]

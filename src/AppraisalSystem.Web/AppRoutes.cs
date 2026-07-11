@@ -70,6 +70,22 @@ public static class AppRoutes
                 : $"/pencarian-data/{normalized}/edit";
         }
 
+        public static string MemoByPublicId(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Memo
+                : $"/pencarian-data/{normalized}/memo";
+        }
+
+        public static string HistoryByPublicId(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? History
+                : $"/pencarian-data/{normalized}/history";
+        }
+
         public static string WithSelectedPublicId(string selectedPublicId)
         {
             var normalized = TryNormalizePublicId(selectedPublicId);

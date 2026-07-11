@@ -1,6 +1,8 @@
+@page "/pencarian-data/{PublicId:guid}/memo"
 @page "/pencarian-data/memo"
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject NavigationManager NavigationManager
 
 <PageTitle>Pencarian Data - Memo</PageTitle>
 
@@ -121,6 +123,7 @@
 </BaseCard>
 
 @code {
+    [Parameter] public Guid? PublicId { get; set; }
     [SupplyParameterFromQuery(Name = "selectedPublicId")] public Guid? SelectedPublicId { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -159,7 +162,15 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var normalizedSelectedPublicId = SelectedPublicId?.ToString("D");
+        if (!PublicId.HasValue && SelectedPublicId.HasValue)
+        {
+            var canonicalUrl = NavigationManager.ToAppPath(AppRoutes.PencarianData.MemoByPublicId(SelectedPublicId.Value.ToString("D")));
+            NavigationManager.NavigateTo(canonicalUrl, replace: true);
+            return;
+        }
+
+        var effectivePublicId = PublicId ?? SelectedPublicId;
+        var normalizedSelectedPublicId = effectivePublicId?.ToString("D");
         if (!string.Equals(normalizedSelectedPublicId, _selectedPublicId, StringComparison.OrdinalIgnoreCase))
         {
             _selectedPublicId = normalizedSelectedPublicId;

@@ -226,6 +226,11 @@
 
         if (TryNormalizePublicId(segments[1]) is not null)
         {
+            if (segments.Length >= 3 && AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[2]))
+            {
+                return [NormalizeWorkspaceSegmentTitle(segments[2])];
+            }
+
             return ["Main"];
         }
 
@@ -359,8 +364,8 @@
                     new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All),
                     new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All)
                 ]),
-            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoWithSelectedPublicId(selectedPublicId), NavLinkMatch.All),
-            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryWithSelectedPublicId(selectedPublicId), NavLinkMatch.All)
+            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoByPublicId(selectedPublicId), NavLinkMatch.All),
+            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryByPublicId(selectedPublicId), NavLinkMatch.All)
         ];
     }
 
@@ -457,9 +462,53 @@
 
     protected override void OnInitialized() => NavigationManager.LocationChanged += HandleLocationChanged;
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        TryRedirectLegacyMainWorkspaceUrl();
+    }
+
     public void Dispose() => NavigationManager.LocationChanged -= HandleLocationChanged;
 
-    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (TryRedirectLegacyMainWorkspaceUrl())
+        {
+            return;
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool TryRedirectLegacyMainWorkspaceUrl()
+    {
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length != 1 || !AppRoutes.PencarianData.IsModuleSegment(segments[0]))
+        {
+            return false;
+        }
+
+        var selectedPublicId = TryGetSelectedPublicIdFromQuery();
+        if (string.IsNullOrWhiteSpace(selectedPublicId))
+        {
+            return false;
+        }
+
+        var target = NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(selectedPublicId));
+        var currentPathAndQuery = NavigationManager.ToAbsoluteUri(NavigationManager.Uri).PathAndQuery;
+        var targetPathAndQuery = NavigationManager.ToAbsoluteUri(target).PathAndQuery;
+        if (string.Equals(currentPathAndQuery, targetPathAndQuery, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        NavigationManager.NavigateTo(target, replace: true);
+        return true;
+    }
 
     private Task ToggleSidebar()
     {
