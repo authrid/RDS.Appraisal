@@ -27,6 +27,18 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         return appraisal is null ? null : MapDetail(appraisal);
     }
 
+    public async Task<AppraisalDetailDto?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default)
+    {
+        var normalizedPublicId = (publicId ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedPublicId))
+        {
+            return null;
+        }
+
+        var appraisal = await repository.GetByPublicIdAsync(normalizedPublicId, cancellationToken);
+        return appraisal is null ? null : MapDetail(appraisal);
+    }
+
     public Task<DashboardSummaryDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default)
     {
         return repository.GetDashboardSummaryAsync(cancellationToken);
@@ -223,6 +235,7 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         return new AppraisalListItemDto
         {
             Id = appraisal.Id,
+            PublicId = appraisal.PublicId,
             ApplicationNumber = appraisal.ApplicationNumber,
             Segment = appraisal.Segment.ToString(),
             ApplicantType = appraisal.ApplicantType.ToString(),
@@ -242,6 +255,7 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         return new AppraisalDetailDto
         {
             Id = appraisal.Id,
+            PublicId = appraisal.PublicId,
             ApplicationNumber = appraisal.ApplicationNumber,
             Segment = appraisal.Segment,
             MakerId = appraisal.MakerId,

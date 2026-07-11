@@ -5,6 +5,7 @@ namespace AppraisalSystem.Application.Dtos;
 public sealed class AppraisalDetailDto
 {
     public int Id { get; init; }
+    public string PublicId { get; init; } = string.Empty;
     public string ApplicationNumber { get; init; } = string.Empty;
     public CustomerSegment Segment { get; init; }
     public string MakerId { get; init; } = string.Empty;

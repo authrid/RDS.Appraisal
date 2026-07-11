@@ -1,7 +1,6 @@
 @page "/appraisals/create"
-@page "/appraisals/{Id:int}/edit"
 @page "/pencarian-data/create"
-@page "/pencarian-data/{Id:int}/edit"
+@page "/pencarian-data/{PublicId:guid}/edit"
 @attribute [Authorize(Roles = "Appraiser,Supervisor,Admin")]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject NavigationManager NavigationManager
@@ -227,7 +226,7 @@
 </BaseCard>
 
 @code {
-    [Parameter] public int? Id { get; set; }
+    [Parameter] public Guid? PublicId { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
     private const string ComparableMarker = "[[COMPARABLES]]";
 
@@ -261,7 +260,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _isEdit = Id.HasValue;
+        _isEdit = PublicId.HasValue;
 
         var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
         var user = authState.User;
@@ -284,7 +283,7 @@
             return;
         }
 
-        var existing = await AppraisalService.GetByIdAsync(Id!.Value);
+        var existing = await AppraisalService.GetByPublicIdAsync(PublicId!.Value.ToString("D"));
         if (existing is null)
         {
             NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
@@ -297,7 +296,7 @@
 
         if (!canEditExisting)
         {
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id.Value)));
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(existing.PublicId)));
             return;
         }
 
@@ -358,7 +357,7 @@
         if (_isEdit)
         {
             await AppraisalService.UpdateAsync(_model);
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id!.Value)));
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId!.Value.ToString("D"))));
             return;
         }
         else
@@ -372,16 +371,23 @@
             var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
             var username = authState.User.Identity?.Name ?? "system";
             var newId = await AppraisalService.CreateAsync(_model, username);
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(newId)));
+            var created = await AppraisalService.GetByIdAsync(newId);
+            if (created is null)
+            {
+                NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
+                return;
+            }
+
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(created.PublicId)));
             return;
         }
     }
 
     private void Back()
     {
-        if (_isEdit && Id.HasValue)
+        if (_isEdit && PublicId.HasValue)
         {
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id.Value)));
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.Value.ToString("D"))));
             return;
         }
 

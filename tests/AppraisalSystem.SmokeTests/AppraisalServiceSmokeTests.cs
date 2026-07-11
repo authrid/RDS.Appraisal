@@ -110,8 +110,6 @@ public sealed class AppraisalServiceSmokeTests
             IdentityNumber = "ID-15",
             CollateralType = CollateralType.Property,
             CollateralSubtype = "Rumah",
-            Location = "Jakarta",
-            Specification = "Luas 100m2",
             MarketValue = 1000000000,
             LiquidationValue = 800000000,
             Notes = "Revisi data setelah reject"
@@ -162,6 +160,9 @@ public sealed class AppraisalServiceSmokeTests
 
         public Task<Appraisal?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
             => Task.FromResult(Entities.TryGetValue(id, out var appraisal) ? appraisal : null);
+
+        public Task<Appraisal?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default)
+            => Task.FromResult(Entities.Values.FirstOrDefault(x => string.Equals(x.PublicId, publicId, StringComparison.OrdinalIgnoreCase)));
 
         public Task<int> CreateAsync(Appraisal appraisal, CancellationToken cancellationToken = default)
             => Task.FromResult(1);

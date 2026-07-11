@@ -84,7 +84,7 @@
                                         <span>Batal</span>
                                     </span>
                                 </BaseButton>
-                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="AddHistoryAsync" Disabled="@(!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newAction) || _isSaving)">
+                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="AddHistoryAsync" Disabled="@(string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newAction) || _isSaving)">
                                     <span class="inline-flex items-center gap-2">
                                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                             <path d="M4.5 10.5l3.2 3.2 7.8-7.8"></path>
@@ -119,11 +119,11 @@
 </BaseCard>
 
 @code {
-    [SupplyParameterFromQuery(Name = "selectedId")] public int? SelectedId { get; set; }
+    [SupplyParameterFromQuery(Name = "selectedPublicId")] public Guid? SelectedPublicId { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    private int? _selectedId;
+    private string? _selectedPublicId;
     private AppraisalDetailDto? _detail;
     private List<WorkflowEntry> _historyEntries = [];
     private string _newAction = "Workflow Updated";
@@ -138,9 +138,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (SelectedId != _selectedId)
+        var normalizedSelectedPublicId = SelectedPublicId?.ToString("D");
+        if (!string.Equals(normalizedSelectedPublicId, _selectedPublicId, StringComparison.OrdinalIgnoreCase))
         {
-            _selectedId = SelectedId;
+            _selectedPublicId = normalizedSelectedPublicId;
             await RefreshListCoreAsync();
         }
     }
@@ -174,7 +175,7 @@
 
         try
         {
-            if (!_selectedId.HasValue)
+            if (string.IsNullOrWhiteSpace(_selectedPublicId))
             {
                 _detail = null;
                 _historyEntries = [];
@@ -183,7 +184,7 @@
                 return;
             }
 
-            _detail = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            _detail = await AppraisalService.GetByPublicIdAsync(_selectedPublicId);
             if (_detail is null)
             {
                 _historyEntries = [];
@@ -207,7 +208,7 @@
 
     private async Task AddHistoryAsync(MouseEventArgs _)
     {
-        if (!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newAction))
+        if (string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newAction))
         {
             return;
         }
@@ -217,7 +218,7 @@
 
         try
         {
-            var latest = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            var latest = await AppraisalService.GetByPublicIdAsync(_selectedPublicId);
             if (latest is null)
             {
                 _feedbackVariant = "warning";

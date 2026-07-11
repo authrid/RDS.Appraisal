@@ -32,8 +32,15 @@ TaskScheduler.UnobservedTaskException += (_, args) =>
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+var razorComponents = builder.Services.AddRazorComponents();
+if (builder.Environment.IsDevelopment())
+{
+    razorComponents.AddInteractiveServerComponents(options => options.DetailedErrors = true);
+}
+else
+{
+    razorComponents.AddInteractiveServerComponents();
+}
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 

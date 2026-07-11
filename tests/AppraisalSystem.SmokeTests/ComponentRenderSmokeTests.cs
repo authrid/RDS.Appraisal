@@ -45,19 +45,21 @@ public sealed class ComponentRenderSmokeTests : TestContext
     [Fact]
     public void AppSecondarySidebar_RendersNestedTree_WhenActiveChildRouteMatches()
     {
+        const string publicId = "11111111-2222-3333-4444-555555555555";
+
         var items = new List<SecondarySidebarItem>
         {
             new(
                 title: "Main",
-                href: "/pencarian-data/7",
+                href: $"/pencarian-data/{publicId}",
                 match: Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All,
                 children:
                 [
                     new SecondarySidebarItem("Menu 1", "/not-found", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
                     new SecondarySidebarItem("Menu 2", "/not-found", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
                 ]),
-            new SecondarySidebarItem("Memo", "/pencarian-data/memo?selectedId=7", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
-            new SecondarySidebarItem("History", "/pencarian-data/history?selectedId=7", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
+            new SecondarySidebarItem("Memo", $"/pencarian-data/memo?selectedPublicId={publicId}", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All),
+            new SecondarySidebarItem("History", $"/pencarian-data/history?selectedPublicId={publicId}", Microsoft.AspNetCore.Components.Routing.NavLinkMatch.All)
         };
 
         var cut = RenderComponent<AppSecondarySidebar>(parameters => parameters

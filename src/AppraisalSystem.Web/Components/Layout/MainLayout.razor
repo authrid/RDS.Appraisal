@@ -110,18 +110,18 @@
     {
         get
         {
-            if (!IsWorkspaceQueryRouteMissingSelectedId())
+            if (!IsWorkspaceQueryRouteMissingSelectedPublicId())
             {
                 return null;
             }
 
-            return HasSelectedIdQueryParameter()
-                ? "Parameter selectedId tidak valid. Pilih data appraisal dari halaman pencarian, lalu buka menu Main, Memo, atau History kembali."
+            return HasSelectedPublicIdQueryParameter()
+                ? "Parameter selectedPublicId tidak valid. Pilih data appraisal dari halaman pencarian, lalu buka menu Main, Memo, atau History kembali."
                 : "Pilih data appraisal dari halaman pencarian terlebih dahulu agar menu Main, Memo, dan History bisa dibuka.";
         }
     }
 
-    private int? SelectedWorkspaceAppraisalId => ResolveSelectedWorkspaceAppraisalId();
+    private string? SelectedWorkspacePublicId => ResolveSelectedWorkspacePublicId();
 
     private SecondarySidebarConfig? ResolveSecondarySidebar()
     {
@@ -214,7 +214,7 @@
             return [];
         }
 
-        if (!AppRoutes.PencarianData.IsModuleSegment(segments[0]) || !SelectedWorkspaceAppraisalId.HasValue)
+        if (!AppRoutes.PencarianData.IsModuleSegment(segments[0]) || string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
         {
             return [];
         }
@@ -224,7 +224,7 @@
             return ["Main"];
         }
 
-        if (int.TryParse(segments[1], out _))
+        if (TryNormalizePublicId(segments[1]) is not null)
         {
             return ["Main"];
         }
@@ -341,67 +341,67 @@
 
     private IReadOnlyList<SecondarySidebarItem>? ResolvePencarianDataSidebarItems()
     {
-        if (!SelectedWorkspaceAppraisalId.HasValue)
+        if (string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
         {
             return null;
         }
 
-        var selectedId = SelectedWorkspaceAppraisalId.Value;
+        var selectedPublicId = SelectedWorkspacePublicId;
 
         return
         [
             new SecondarySidebarItem(
                 title: "Main",
-                href: AppRoutes.PencarianData.Detail(selectedId),
+                href: AppRoutes.PencarianData.Detail(selectedPublicId),
                 match: NavLinkMatch.All,
                 children:
                 [
                     new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All),
                     new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All)
                 ]),
-            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoWithSelectedId(selectedId), NavLinkMatch.All),
-            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryWithSelectedId(selectedId), NavLinkMatch.All)
+            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoWithSelectedPublicId(selectedPublicId), NavLinkMatch.All),
+            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryWithSelectedPublicId(selectedPublicId), NavLinkMatch.All)
         ];
     }
 
-    private int? ResolveSelectedWorkspaceAppraisalId()
+    private string? ResolveSelectedWorkspacePublicId()
     {
         var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         if (segments.Length >= 2
             && AppRoutes.PencarianData.IsModuleSegment(segments[0])
-            && int.TryParse(segments[1], out var routeId))
+            && TryNormalizePublicId(segments[1]) is { } routePublicId)
         {
-            return routeId;
+            return routePublicId;
         }
 
         if (segments.Length == 2
             && string.Equals(segments[0], AppRoutes.PencarianData.Segment, StringComparison.OrdinalIgnoreCase)
             && AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[1]))
         {
-            return TryGetSelectedIdFromQuery();
+            return TryGetSelectedPublicIdFromQuery();
         }
 
         if (segments.Length == 1
             && AppRoutes.PencarianData.IsModuleSegment(segments[0]))
         {
-            return TryGetSelectedIdFromQuery();
+            return TryGetSelectedPublicIdFromQuery();
         }
 
         return null;
     }
 
-    private bool IsWorkspaceQueryRouteMissingSelectedId()
+    private bool IsWorkspaceQueryRouteMissingSelectedPublicId()
     {
         var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         return segments.Length == 2
             && AppRoutes.PencarianData.IsModuleSegment(segments[0])
             && AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[1])
-            && !SelectedWorkspaceAppraisalId.HasValue;
+            && string.IsNullOrWhiteSpace(SelectedWorkspacePublicId);
     }
 
-    private bool HasSelectedIdQueryParameter()
+    private bool HasSelectedPublicIdQueryParameter()
     {
         if (string.IsNullOrWhiteSpace(CurrentUri.Query))
         {
@@ -411,16 +411,16 @@
         try
         {
             var query = QueryHelpers.ParseQuery(CurrentUri.Query);
-            return query.ContainsKey("selectedId");
+            return query.ContainsKey(AppRoutes.PencarianData.SelectedPublicIdQueryKey);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed checking selectedId key from {Uri}", CurrentUri);
+            Logger.LogWarning(ex, "Failed checking selectedPublicId key from {Uri}", CurrentUri);
             return false;
         }
     }
 
-    private int? TryGetSelectedIdFromQuery()
+    private string? TryGetSelectedPublicIdFromQuery()
     {
         if (string.IsNullOrWhiteSpace(CurrentUri.Query))
         {
@@ -430,23 +430,29 @@
         try
         {
             var query = QueryHelpers.ParseQuery(CurrentUri.Query);
-            if (!query.TryGetValue("selectedId", out var selectedIdValues))
+            if (!query.TryGetValue(AppRoutes.PencarianData.SelectedPublicIdQueryKey, out var selectedPublicIdValues))
             {
                 return null;
             }
 
-            var selectedIdValue = selectedIdValues.FirstOrDefault();
-            if (int.TryParse(selectedIdValue, out var selectedId))
-            {
-                return selectedId;
-            }
+            return TryNormalizePublicId(selectedPublicIdValues.FirstOrDefault());
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed parsing selectedId query from {Uri}", CurrentUri);
+            Logger.LogWarning(ex, "Failed parsing selectedPublicId query from {Uri}", CurrentUri);
         }
 
         return null;
+    }
+
+    private static string? TryNormalizePublicId(string? rawValue)
+    {
+        if (!Guid.TryParse(rawValue, out var parsed))
+        {
+            return null;
+        }
+
+        return parsed.ToString("D");
     }
 
     protected override void OnInitialized() => NavigationManager.LocationChanged += HandleLocationChanged;

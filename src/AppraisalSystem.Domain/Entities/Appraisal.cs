@@ -5,6 +5,7 @@ namespace AppraisalSystem.Domain.Entities;
 public class Appraisal
 {
     public int Id { get; set; }
+    public string PublicId { get; set; } = Guid.NewGuid().ToString("D");
     public string ApplicationNumber { get; set; } = string.Empty;
     public CustomerSegment Segment { get; set; } = CustomerSegment.Unknown;
     public string MakerId { get; set; } = string.Empty;

@@ -60,6 +60,11 @@ public sealed class AppraisalRepository(AppraisalDbContext dbContext) : IApprais
         return dbContext.Appraisals.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public Task<Appraisal?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Appraisals.FirstOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
+    }
+
     public async Task<int> CreateAsync(Appraisal appraisal, CancellationToken cancellationToken = default)
     {
         dbContext.Appraisals.Add(appraisal);

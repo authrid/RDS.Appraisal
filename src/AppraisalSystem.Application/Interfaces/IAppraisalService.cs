@@ -8,6 +8,7 @@ public interface IAppraisalService
 {
     Task<PagedResult<AppraisalListItemDto>> GetPagedAsync(AppraisalQueryDto query, CancellationToken cancellationToken = default);
     Task<AppraisalDetailDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<AppraisalDetailDto?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default);
     Task<int> CreateAsync(AppraisalUpsertDto request, string createdBy, CancellationToken cancellationToken = default);
     Task UpdateAsync(AppraisalUpsertDto request, CancellationToken cancellationToken = default);
     Task SubmitAsync(int id, string? actor = null, CancellationToken cancellationToken = default);

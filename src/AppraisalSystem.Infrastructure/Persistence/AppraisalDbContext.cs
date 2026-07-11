@@ -13,6 +13,7 @@ public sealed class AppraisalDbContext(DbContextOptions<AppraisalDbContext> opti
         {
             entity.ToTable("Appraisals");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.PublicId).HasMaxLength(36).IsRequired();
 
             entity.Property(x => x.ApplicationNumber).HasMaxLength(40);
             entity.Property(x => x.MakerId).HasMaxLength(50);
@@ -53,6 +54,7 @@ public sealed class AppraisalDbContext(DbContextOptions<AppraisalDbContext> opti
             entity.Property(x => x.LiquidationValue).HasPrecision(18, 2);
 
             entity.HasIndex(x => x.ApplicationNumber);
+            entity.HasIndex(x => x.PublicId).IsUnique();
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.CreatedAtUtc);
         });

@@ -52,19 +52,47 @@ public static class AppRoutes
         public const string Memo = "/pencarian-data/memo";
         public const string History = "/pencarian-data/history";
 
-        public static string Detail(int id) => $"/pencarian-data/{id}";
+        public const string SelectedPublicIdQueryKey = "selectedPublicId";
 
-        public static string Edit(int id) => $"/pencarian-data/{id}/edit";
+        public static string Detail(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Main
+                : $"/pencarian-data/{normalized}";
+        }
 
-        public static string LegacyDetail(int id) => $"/appraisals/{id}";
+        public static string Edit(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Main
+                : $"/pencarian-data/{normalized}/edit";
+        }
 
-        public static string LegacyEdit(int id) => $"/appraisals/{id}/edit";
+        public static string WithSelectedPublicId(string selectedPublicId)
+        {
+            var normalized = TryNormalizePublicId(selectedPublicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Main
+                : $"{Main}?{SelectedPublicIdQueryKey}={normalized}";
+        }
 
-        public static string WithSelectedId(int selectedId) => $"{Main}?selectedId={selectedId}";
+        public static string MemoWithSelectedPublicId(string selectedPublicId)
+        {
+            var normalized = TryNormalizePublicId(selectedPublicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Memo
+                : $"{Memo}?{SelectedPublicIdQueryKey}={normalized}";
+        }
 
-        public static string MemoWithSelectedId(int selectedId) => $"{Memo}?selectedId={selectedId}";
-
-        public static string HistoryWithSelectedId(int selectedId) => $"{History}?selectedId={selectedId}";
+        public static string HistoryWithSelectedPublicId(string selectedPublicId)
+        {
+            var normalized = TryNormalizePublicId(selectedPublicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? History
+                : $"{History}?{SelectedPublicIdQueryKey}={normalized}";
+        }
 
         public static bool IsModuleSegment(string? segment) =>
             string.Equals(segment, Segment, StringComparison.OrdinalIgnoreCase)
@@ -74,5 +102,15 @@ public static class AppRoutes
             string.Equals(segment, "main", StringComparison.OrdinalIgnoreCase)
             || string.Equals(segment, "memo", StringComparison.OrdinalIgnoreCase)
             || string.Equals(segment, "history", StringComparison.OrdinalIgnoreCase);
+
+        private static string? TryNormalizePublicId(string? publicId)
+        {
+            if (!Guid.TryParse(publicId, out var parsed))
+            {
+                return null;
+            }
+
+            return parsed.ToString("D");
+        }
     }
 }

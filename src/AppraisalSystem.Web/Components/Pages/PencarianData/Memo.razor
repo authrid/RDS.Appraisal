@@ -83,7 +83,7 @@
                                         <span>Batal</span>
                                     </span>
                                 </BaseButton>
-                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="SaveNewMemoAsync" Disabled="@(!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newMemoContent) || _isSaving)">
+                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="SaveNewMemoAsync" Disabled="@(string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent) || _isSaving)">
                                     <span class="inline-flex items-center gap-2">
                                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                             <path d="M4.5 10.5l3.2 3.2 7.8-7.8"></path>
@@ -121,11 +121,11 @@
 </BaseCard>
 
 @code {
-    [SupplyParameterFromQuery(Name = "selectedId")] public int? SelectedId { get; set; }
+    [SupplyParameterFromQuery(Name = "selectedPublicId")] public Guid? SelectedPublicId { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    private int? _selectedId;
+    private string? _selectedPublicId;
     private AppraisalDetailDto? _selectedDetail;
     private List<MemoRow> _memoRows = [];
     private bool _isLoading;
@@ -159,9 +159,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (SelectedId != _selectedId)
+        var normalizedSelectedPublicId = SelectedPublicId?.ToString("D");
+        if (!string.Equals(normalizedSelectedPublicId, _selectedPublicId, StringComparison.OrdinalIgnoreCase))
         {
-            _selectedId = SelectedId;
+            _selectedPublicId = normalizedSelectedPublicId;
             await RefreshListCoreAsync();
         }
     }
@@ -173,7 +174,7 @@
 
         try
         {
-            if (!_selectedId.HasValue)
+            if (string.IsNullOrWhiteSpace(_selectedPublicId))
             {
                 _selectedDetail = null;
                 _memoRows = [];
@@ -182,7 +183,7 @@
                 return;
             }
 
-            _selectedDetail = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            _selectedDetail = await AppraisalService.GetByPublicIdAsync(_selectedPublicId);
             if (_selectedDetail is null)
             {
                 _memoRows = [];
@@ -221,7 +222,7 @@
 
     private async Task SaveNewMemoAsync(MouseEventArgs _)
     {
-        if (!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newMemoContent))
+        if (string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent))
         {
             return;
         }
@@ -231,7 +232,7 @@
 
         try
         {
-            var latest = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            var latest = await AppraisalService.GetByPublicIdAsync(_selectedPublicId);
             if (latest is null)
             {
                 _feedbackVariant = "warning";
@@ -282,7 +283,7 @@
 
     private string BuildSelectedAppNo()
         => string.IsNullOrWhiteSpace(_selectedDetail?.ApplicationNumber)
-            ? (_selectedId.HasValue ? $"APP-{_selectedId.Value:0000}" : "-")
+            ? "-"
             : _selectedDetail.ApplicationNumber;
 
     private string BuildSelectedDebtorName()

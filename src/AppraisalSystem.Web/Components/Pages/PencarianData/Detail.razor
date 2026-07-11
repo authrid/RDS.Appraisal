@@ -1,5 +1,4 @@
-@page "/appraisals/{Id:int}"
-@page "/pencarian-data/{Id:int}"
+@page "/pencarian-data/{PublicId:guid}"
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject NavigationManager NavigationManager
@@ -177,7 +176,7 @@
                 </BaseLinkButton>
                 @if (CanEditCurrentAppraisal)
                 {
-                    <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(Id)" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                    <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(PublicId.ToString("D"))" Variant="brand" Size="lg" Class="w-full sm:w-auto">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                 <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5z"></path>
@@ -258,7 +257,7 @@
                     OnCancel="CloseDialogs" />
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public Guid PublicId { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private bool _isLoading = true;
@@ -288,7 +287,7 @@
         _isSupervisorOrAdmin = user.IsInRole("Supervisor") || user.IsInRole("Admin");
         _isAppraiserOrAdmin = user.IsInRole("Appraiser") || user.IsInRole("Admin");
 
-        _detail = await AppraisalService.GetByIdAsync(Id);
+        _detail = await AppraisalService.GetByPublicIdAsync(PublicId.ToString("D"));
         if (_detail is not null)
         {
             var parsed = ParseComparableSection(_detail.Notes);
@@ -310,8 +309,8 @@
             return;
         }
 
-        await AppraisalService.SubmitAsync(Id, ResolveActorName());
-        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+        await AppraisalService.SubmitAsync(_detail!.Id, ResolveActorName());
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.ToString("D"))), forceLoad: true);
     }
 
     private void OpenApproveDialog() => _showApproveDialog = true;
@@ -339,16 +338,16 @@
 
     private async Task ApproveAsync()
     {
-        await AppraisalService.ApproveAsync(Id, _supervisorNote, ResolveActorName());
+        await AppraisalService.ApproveAsync(_detail!.Id, _supervisorNote, ResolveActorName());
         await CloseDialogs();
-        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.ToString("D"))), forceLoad: true);
     }
 
     private async Task RejectAsync()
     {
-        await AppraisalService.RejectAsync(Id, _supervisorNote, ResolveActorName());
+        await AppraisalService.RejectAsync(_detail!.Id, _supervisorNote, ResolveActorName());
         await CloseDialogs();
-        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.ToString("D"))), forceLoad: true);
     }
 
     private string ResolveActorName()

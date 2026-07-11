@@ -19,6 +19,7 @@ public static class DbInitializer
         if (await dbContext.Appraisals.AnyAsync())
         {
             await BackfillLegacyAppraisalsAsync(dbContext, logger);
+            await EnsurePublicIdUniqueIndexAsync(dbContext, logger);
             logger.LogInformation("Database already contains appraisal data, seeding skipped.");
             return;
         }
@@ -122,6 +123,7 @@ public static class DbInitializer
             });
 
         await dbContext.SaveChangesAsync();
+        await EnsurePublicIdUniqueIndexAsync(dbContext, logger);
         logger.LogInformation("Seed data inserted successfully.");
     }
 
@@ -161,6 +163,7 @@ public static class DbInitializer
 
         var requiredColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            ["PublicId"] = "TEXT NOT NULL DEFAULT ''",
             ["ApplicationNumber"] = "TEXT NOT NULL DEFAULT ''"
             ,["Segment"] = "INTEGER NOT NULL DEFAULT 0"
             ,["MakerId"] = "TEXT NOT NULL DEFAULT ''"
@@ -210,6 +213,18 @@ public static class DbInitializer
         logger.LogInformation("SQLite compatibility schema check completed.");
     }
 
+    private static async Task EnsurePublicIdUniqueIndexAsync(AppraisalDbContext dbContext, ILogger logger)
+    {
+        var providerName = dbContext.Database.ProviderName ?? string.Empty;
+        if (!providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_Appraisals_PublicId ON Appraisals(PublicId);");
+        logger.LogInformation("SQLite PublicId unique index ensured.");
+    }
+
     private static async Task BackfillLegacyAppraisalsAsync(AppraisalDbContext dbContext, ILogger logger)
     {
         var appraisals = await dbContext.Appraisals.ToListAsync();
@@ -231,6 +246,13 @@ public static class DbInitializer
                 };
 
                 appraisal.ApplicationNumber = $"{prefix}.{appraisal.CreatedAtUtc:yyyyMMdd}.{appraisal.Id:000}";
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(appraisal.PublicId)
+                || !Guid.TryParse(appraisal.PublicId, out _))
+            {
+                appraisal.PublicId = Guid.NewGuid().ToString("D");
                 changed = true;
             }
 
