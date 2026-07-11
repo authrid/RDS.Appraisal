@@ -1,0 +1,488 @@
+@page "/appraisals/{Id:int}"
+@page "/pencarian-data/{Id:int}"
+@attribute [Authorize]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Detail Appraisal</PageTitle>
+
+<LoadingSpinner Visible="_isLoading" Text="Memuat detail appraisal..." />
+
+@if (!_isLoading && _detail is not null)
+{
+    <div class="mx-auto max-w-6xl space-y-5">
+        <BaseCard Class="overflow-hidden">
+            <div class="-m-5 px-5 py-6 text-white" style="background: radial-gradient(circle at top left, color-mix(in srgb, var(--brand-accent) 20%, transparent), transparent 36%), linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 78%, #081526) 0%, color-mix(in srgb, var(--brand-primary-hover) 84%, #123862) 56%, color-mix(in srgb, var(--brand-accent) 62%, var(--brand-primary)) 100%);">
+                <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                    <div class="max-w-3xl">
+                        <div class="mb-3 flex flex-wrap items-center gap-2">
+                            <BaseBadge Variant="@GetStatusVariant(_detail.Status)" Size="xs">@_detail.Status</BaseBadge>
+                            <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-100">@_detail.Segment</span>
+                            <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-100">@GetApplicantLabel(_detail.ApplicantType)</span>
+                        </div>
+
+                        <p class="mb-2 text-sm font-semibold uppercase tracking-[0.16em]" style="color: color-mix(in srgb, var(--brand-primary-soft) 60%, #ffffff);">Detail Appraisal</p>
+                        <h2 class="m-0 text-2xl font-extrabold tracking-[0.01em] text-white sm:text-3xl">@Display(_detail.DebtorName)</h2>
+                        <p class="mt-2 mb-0 max-w-2xl text-sm sm:text-base" style="color: color-mix(in srgb, var(--brand-primary-soft) 60%, #ffffff);">No. aplikasi @Display(_detail.ApplicationNumber) untuk agunan @GetCollateralLabel(_detail.CollateralType) di @Display(_detail.Location).</p>
+                    </div>
+
+                    <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:w-[360px]">
+                        <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color: color-mix(in srgb, var(--brand-primary-soft) 60%, #ffffff);">Nilai Pasar</p>
+                            <p class="mb-0 text-xl font-extrabold text-white">@FormatCurrency(_detail.MarketValue)</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color: color-mix(in srgb, var(--brand-primary-soft) 60%, #ffffff);">Nilai Likuidasi</p>
+                            <p class="mb-0 text-xl font-extrabold text-white">@FormatCurrency(_detail.LiquidationValue)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <BaseSectionPanel Class="mt-5" Eyebrow="Data Aplikasi" Subtitle="Ringkasan identitas aplikasi dan konteks proses appraisal.">
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Informasi Utama</p>
+                        <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[150px_1fr]">
+                            <dt class="font-semibold text-slate-500">No. Aplikasi</dt><dd class="font-semibold text-slate-700">@Display(_detail.ApplicationNumber)</dd>
+                            <dt class="font-semibold text-slate-500">Segment</dt><dd>@_detail.Segment</dd>
+                            <dt class="font-semibold text-slate-500">Status</dt><dd><BaseBadge Variant="@GetStatusVariant(_detail.Status)" Size="xs">@_detail.Status</BaseBadge></dd>
+                            <dt class="font-semibold text-slate-500">Jenis Nasabah</dt><dd>@GetApplicantLabel(_detail.ApplicantType)</dd>
+                        </dl>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Konteks Proses</p>
+                        <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[150px_1fr]">
+                            <dt class="font-semibold text-slate-500">Maker</dt><dd>@Display(_detail.MakerId)</dd>
+                            <dt class="font-semibold text-slate-500">Cabang</dt><dd>@Display(_detail.BranchCode)</dd>
+                            <dt class="font-semibold text-slate-500">Tanggal Aplikasi</dt><dd>@DisplayDate(_detail.ApplicationDateUtc)</dd>
+                            <dt class="font-semibold text-slate-500">Dibuat Oleh</dt><dd>@Display(_detail.CreatedBy)</dd>
+                            <dt class="font-semibold text-slate-500">Dibuat Pada</dt><dd>@DisplayDateTime(_detail.CreatedAtUtc)</dd>
+                            <dt class="font-semibold text-slate-500">Terakhir Update</dt><dd>@DisplayDateTime(_detail.UpdatedAtUtc)</dd>
+                        </dl>
+                    </div>
+                </div>
+            </BaseSectionPanel>
+
+            <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <BaseSectionPanel Eyebrow="Data Pengajuan" Subtitle="Informasi pemohon ditampilkan sesuai kategori nasabah.">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[180px_1fr]">
+                        <dt class="font-semibold text-slate-500">Nama Debitur</dt><dd class="font-semibold text-slate-700">@Display(_detail.DebtorName)</dd>
+                        <dt class="font-semibold text-slate-500">Jenis Nasabah</dt><dd>@GetApplicantLabel(_detail.ApplicantType)</dd>
+                        <dt class="font-semibold text-slate-500">No Identitas</dt><dd>@Display(_detail.IdentityNumber)</dd>
+
+                        @if (_detail.ApplicantType == ApplicantType.Business)
+                        {
+                            <dt class="font-semibold text-slate-500">No Akta</dt><dd>@Display(_detail.DeedNumber)</dd>
+                            <dt class="font-semibold text-slate-500">Badan Hukum</dt><dd>@Display(_detail.LegalEntity)</dd>
+                            <dt class="font-semibold text-slate-500">Tanggal Berdiri</dt><dd>@DisplayDate(_detail.BusinessEstablishedDate)</dd>
+                        }
+                        else
+                        {
+                            <dt class="font-semibold text-slate-500">Tempat Lahir</dt><dd>@Display(_detail.BirthPlace)</dd>
+                            <dt class="font-semibold text-slate-500">Tanggal Lahir</dt><dd>@DisplayDate(_detail.DateOfBirth)</dd>
+                            <dt class="font-semibold text-slate-500">Jenis Kelamin</dt><dd>@Display(_detail.Gender)</dd>
+                            <dt class="font-semibold text-slate-500">Status Pernikahan</dt><dd>@Display(_detail.MaritalStatus)</dd>
+                        }
+                    </dl>
+                </BaseSectionPanel>
+
+                <BaseSectionPanel Eyebrow="Kontak dan Alamat" Subtitle="Ringkasan alamat dan kanal komunikasi debitur.">
+                    <div class="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Alamat Lengkap</p>
+                        <p class="mb-0 text-sm leading-6 text-slate-700">@BuildAddress(_detail)</p>
+                    </div>
+
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[180px_1fr]">
+                        <dt class="font-semibold text-slate-500">No Telepon</dt><dd>@Display(_detail.PhoneNumber)</dd>
+                        <dt class="font-semibold text-slate-500">Handphone 1</dt><dd>@Display(_detail.MobileNumber1)</dd>
+                        <dt class="font-semibold text-slate-500">Handphone 2</dt><dd>@Display(_detail.MobileNumber2)</dd>
+                        <dt class="font-semibold text-slate-500">Email</dt><dd>@Display(_detail.Email)</dd>
+                        <dt class="font-semibold text-slate-500">Kelurahan / Kecamatan</dt><dd>@BuildSubArea(_detail)</dd>
+                        <dt class="font-semibold text-slate-500">Kota / Provinsi</dt><dd>@BuildCityArea(_detail)</dd>
+                        <dt class="font-semibold text-slate-500">Negara</dt><dd>@Display(_detail.Country)</dd>
+                    </dl>
+                </BaseSectionPanel>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                <BaseSectionPanel Eyebrow="Data Agunan" Subtitle="Spesifikasi objek yang menjadi dasar penilaian.">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[180px_1fr]">
+                        <dt class="font-semibold text-slate-500">Jenis Agunan</dt><dd>@GetCollateralLabel(_detail.CollateralType)</dd>
+                        <dt class="font-semibold text-slate-500">Jenis Jaminan</dt><dd>@Display(_detail.CollateralSubtype)</dd>
+                        <dt class="font-semibold text-slate-500">Lokasi Agunan</dt><dd class="font-semibold text-slate-700">@Display(_detail.Location)</dd>
+                        <dt class="font-semibold text-slate-500">Luas / Spesifikasi</dt><dd>@Display(_detail.Specification)</dd>
+                        <dt class="font-semibold text-slate-500">Nilai Pasar</dt><dd>@FormatCurrency(_detail.MarketValue)</dd>
+                        <dt class="font-semibold text-slate-500">Nilai Likuidasi</dt><dd>@FormatCurrency(_detail.LiquidationValue)</dd>
+                    </dl>
+                </BaseSectionPanel>
+
+                <BaseSectionPanel Eyebrow="Catatan" Subtitle="Komentar dari appraiser dan supervisor.">
+                    <div class="space-y-3">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Catatan Appraiser</p>
+                            <p class="mb-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">@Display(_plainNotes)</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Catatan Supervisor</p>
+                            <p class="mb-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">@Display(_detail.SupervisorNote)</p>
+                        </div>
+                    </div>
+                </BaseSectionPanel>
+            </div>
+
+            @if (_comparables.Count > 0)
+            {
+                <BaseSectionPanel Class="mt-5 bg-slate-50/70" Eyebrow="Agunan Pembanding" Title="Data pembanding appraisal">
+                    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                        @for (var i = 0; i < _comparables.Count; i++)
+                        {
+                            var item = _comparables[i];
+                            var rowNumber = i + 1;
+
+                            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <div class="mb-3 flex items-center justify-between gap-3">
+                                    <p class="mb-0 text-sm font-bold text-slate-700">Pembanding @rowNumber</p>
+                                    <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Market Approach</span>
+                                </div>
+
+                                <dl class="grid grid-cols-1 gap-x-4 gap-y-2 text-sm text-slate-600 sm:grid-cols-[160px_1fr]">
+                                    <dt class="font-semibold text-slate-500">Sumber Data</dt><dd>@Display(item.Source)</dd>
+                                    <dt class="font-semibold text-slate-500">Lokasi Pembanding</dt><dd>@Display(item.Location)</dd>
+                                    <dt class="font-semibold text-slate-500">Spesifikasi</dt><dd>@Display(item.Specification)</dd>
+                                    <dt class="font-semibold text-slate-500">Luas Tanah</dt><dd>@DisplayMeasurement(item.LandArea)</dd>
+                                    <dt class="font-semibold text-slate-500">Luas Bangunan</dt><dd>@DisplayMeasurement(item.BuildingArea)</dd>
+                                    <dt class="font-semibold text-slate-500">Harga Penawaran</dt><dd>@FormatNullableCurrency(item.OfferPrice)</dd>
+                                    <dt class="font-semibold text-slate-500">Penyesuaian (%)</dt><dd>@DisplayPercent(item.AdjustmentPercent)</dd>
+                                    <dt class="font-semibold text-slate-500">Nilai Indikasi</dt><dd>@FormatNullableCurrency(item.IndicatedValue)</dd>
+                                    <dt class="font-semibold text-slate-500">Keterangan</dt><dd>@Display(item.Remarks)</dd>
+                                </dl>
+                            </div>
+                        }
+                    </div>
+                </BaseSectionPanel>
+            }
+
+            <div class="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
+                <BaseLinkButton Href="@AppRoutes.PencarianData.Main" Variant="secondary-muted" Size="lg" Class="w-full sm:w-auto">
+                    <span class="inline-flex items-center gap-2">
+                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M8 5l-5 5 5 5"></path>
+                            <path d="M4 10h13"></path>
+                        </svg>
+                        <span>Back</span>
+                    </span>
+                </BaseLinkButton>
+                @if (CanEditCurrentAppraisal)
+                {
+                    <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(Id)" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5z"></path>
+                                <path d="M12.5 6l1.5 1.5"></path>
+                            </svg>
+                            <span>Edit</span>
+                        </span>
+                    </BaseLinkButton>
+                }
+                @if (CanSubmitCurrentAppraisal)
+                {
+                    <BaseButton Variant="brand" Size="lg" Class="w-full sm:w-auto" OnClick="SubmitAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M3 10l13-6-3 12-4-4-6-2z"></path>
+                                <path d="M9 12l1.5 4"></path>
+                            </svg>
+                            <span>Submit</span>
+                        </span>
+                    </BaseButton>
+                }
+            </div>
+        </BaseCard>
+    </div>
+
+    <AuthorizeView Roles="Supervisor,Admin">
+        @if (_detail.Status == AppraisalStatus.Submitted)
+        {
+            <BaseCard Title="Approval Supervisor" Subtitle="Approve atau reject appraisal dengan catatan yang terdokumentasi." Class="mx-auto max-w-6xl">
+                <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-amber-700">Tindakan Review</p>
+                    <p class="mb-0 text-sm text-slate-600">Keputusan supervisor akan langsung memperbarui status appraisal ini.</p>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
+                    <BaseTextAreaField Id="supervisorNote" Label="Catatan Supervisor" InputClass="min-h-32" @bind-Value="_supervisorNote" />
+
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <p class="mb-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Aksi</p>
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <BaseButton Variant="success" Size="lg" Class="w-full sm:w-auto" OnClick="OpenApproveDialogAsync">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path d="M4 10.5l3.5 3.5L16 5.5"></path>
+                                    </svg>
+                                    <span>Approve</span>
+                                </span>
+                            </BaseButton>
+                            <BaseButton Variant="danger" Size="lg" Class="w-full sm:w-auto" OnClick="OpenRejectDialogAsync">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path d="M5.5 5.5l9 9"></path>
+                                        <path d="M14.5 5.5l-9 9"></path>
+                                    </svg>
+                                    <span>Reject</span>
+                                </span>
+                            </BaseButton>
+                        </div>
+                    </div>
+                </div>
+            </BaseCard>
+        }
+    </AuthorizeView>
+}
+
+<ConfirmationDialog Open="_showApproveDialog"
+                    Title="Approve Appraisal"
+                    Message="Lanjutkan proses approve appraisal ini?"
+                    ConfirmText="Approve"
+                    OnConfirm="ApproveAsync"
+                    OnCancel="CloseDialogs" />
+
+<ConfirmationDialog Open="_showRejectDialog"
+                    Title="Reject Appraisal"
+                    Message="Lanjutkan proses reject appraisal ini?"
+                    ConfirmText="Reject"
+                    OnConfirm="RejectAsync"
+                    OnCancel="CloseDialogs" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool _isLoading = true;
+    private AppraisalDetailDto? _detail;
+    private string _supervisorNote = string.Empty;
+    private bool _showApproveDialog;
+    private bool _showRejectDialog;
+    private const string ComparableMarker = "[[COMPARABLES]]";
+    private string _plainNotes = string.Empty;
+    private List<ComparableDetail> _comparables = [];
+    private bool _isSupervisorOrAdmin;
+    private bool _isAppraiserOrAdmin;
+
+    private bool CanEditCurrentAppraisal => _detail is not null
+        && (_detail.Status == AppraisalStatus.Submitted ? _isSupervisorOrAdmin : _isAppraiserOrAdmin);
+
+    private bool CanSubmitCurrentAppraisal => _detail is not null
+        && _detail.Status == AppraisalStatus.Draft
+        && _isAppraiserOrAdmin;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+
+        var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        var user = authState.User;
+        _isSupervisorOrAdmin = user.IsInRole("Supervisor") || user.IsInRole("Admin");
+        _isAppraiserOrAdmin = user.IsInRole("Appraiser") || user.IsInRole("Admin");
+
+        _detail = await AppraisalService.GetByIdAsync(Id);
+        if (_detail is not null)
+        {
+            var parsed = ParseComparableSection(_detail.Notes);
+            _plainNotes = parsed.Notes;
+            _comparables = parsed.Comparables;
+        }
+        _isLoading = false;
+
+        if (_detail is null)
+        {
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
+        }
+    }
+
+    private async Task SubmitAsync(MouseEventArgs _)
+    {
+        if (!CanSubmitCurrentAppraisal)
+        {
+            return;
+        }
+
+        await AppraisalService.SubmitAsync(Id, ResolveActorName());
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+    }
+
+    private void OpenApproveDialog() => _showApproveDialog = true;
+
+    private void OpenRejectDialog() => _showRejectDialog = true;
+
+    private Task OpenApproveDialogAsync(MouseEventArgs _)
+    {
+        OpenApproveDialog();
+        return Task.CompletedTask;
+    }
+
+    private Task OpenRejectDialogAsync(MouseEventArgs _)
+    {
+        OpenRejectDialog();
+        return Task.CompletedTask;
+    }
+
+    private Task CloseDialogs()
+    {
+        _showApproveDialog = false;
+        _showRejectDialog = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task ApproveAsync()
+    {
+        await AppraisalService.ApproveAsync(Id, _supervisorNote, ResolveActorName());
+        await CloseDialogs();
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+    }
+
+    private async Task RejectAsync()
+    {
+        await AppraisalService.RejectAsync(Id, _supervisorNote, ResolveActorName());
+        await CloseDialogs();
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id)), forceLoad: true);
+    }
+
+    private string ResolveActorName()
+    {
+        var user = AuthenticationStateTask?.IsCompletedSuccessfully == true
+            ? AuthenticationStateTask.Result.User
+            : null;
+
+        if (!string.IsNullOrWhiteSpace(user?.Identity?.Name))
+        {
+            return user.Identity.Name!;
+        }
+
+        return "System User";
+    }
+
+    private static string GetStatusVariant(AppraisalStatus status) => status switch
+    {
+        AppraisalStatus.Approved => "success",
+        AppraisalStatus.Rejected => "danger",
+        AppraisalStatus.Submitted => "warning",
+        _ => "neutral"
+    };
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string DisplayDate(DateTime? value) => value.HasValue ? value.Value.ToString("dd MMM yyyy").ToUpperInvariant() : "-";
+
+    private static string DisplayDateTime(DateTime? value) => value.HasValue ? value.Value.ToString("dd MMM yyyy HH:mm").ToUpperInvariant() : "-";
+
+    private static string DisplayNumber(decimal? value) => value.HasValue ? value.Value.ToString("N2") : "-";
+
+    private static string FormatCurrency(decimal value) => value.ToString("N0");
+
+    private static string FormatNullableCurrency(decimal? value) => value.HasValue ? value.Value.ToString("N0") : "-";
+
+    private static string DisplayMeasurement(decimal? value) => value.HasValue ? $"{value.Value:N2} m2" : "-";
+
+    private static string DisplayPercent(decimal? value) => value.HasValue ? $"{value.Value:N2}%" : "-";
+
+    private static string GetApplicantLabel(ApplicantType applicantType)
+        => applicantType == ApplicantType.Business ? "Badan Usaha" : "Perorangan";
+
+    private static string GetCollateralLabel(CollateralType collateralType) => collateralType switch
+    {
+        CollateralType.Property => "Property",
+        CollateralType.Vehicle => "Vehicle",
+        CollateralType.Machine => "Machine",
+        CollateralType.Inventory => "Inventory",
+        _ => "Other"
+    };
+
+    private static string BuildAddress(AppraisalDetailDto detail)
+    {
+        var parts = new[]
+        {
+            detail.AddressLine1,
+            detail.AddressLine2,
+            detail.AddressLine3,
+            BuildRtRw(detail),
+            detail.Subdistrict,
+            detail.District,
+            detail.City,
+            detail.Province,
+            detail.PostalCode,
+            detail.Country
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x));
+
+        var address = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(address) ? "-" : address;
+    }
+
+    private static string BuildSubArea(AppraisalDetailDto detail)
+    {
+        var value = string.Join(" / ", new[] { detail.Subdistrict, detail.District }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static string BuildCityArea(AppraisalDetailDto detail)
+    {
+        var value = string.Join(" / ", new[] { detail.City, detail.Province }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static string BuildRtRw(AppraisalDetailDto detail)
+    {
+        if (string.IsNullOrWhiteSpace(detail.Rt) && string.IsNullOrWhiteSpace(detail.Rw))
+        {
+            return string.Empty;
+        }
+
+        return $"RT {Display(detail.Rt)} / RW {Display(detail.Rw)}";
+    }
+
+    private static (string Notes, List<ComparableDetail> Comparables) ParseComparableSection(string? rawNotes)
+    {
+        var value = rawNotes ?? string.Empty;
+        var markerIndex = value.IndexOf(ComparableMarker, StringComparison.Ordinal);
+
+        if (markerIndex < 0)
+        {
+            return (value, []);
+        }
+
+        var plainNotes = value[..markerIndex].TrimEnd();
+        var json = value[(markerIndex + ComparableMarker.Length)..].Trim();
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (plainNotes, []);
+        }
+
+        try
+        {
+            var comparables = System.Text.Json.JsonSerializer.Deserialize<List<ComparableDetail>>(json) ?? [];
+            return (plainNotes, comparables);
+        }
+        catch
+        {
+            return (value, []);
+        }
+    }
+
+    private sealed class ComparableDetail
+    {
+        public string Source { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Specification { get; set; } = string.Empty;
+        public decimal? LandArea { get; set; }
+        public decimal? BuildingArea { get; set; }
+        public decimal? OfferPrice { get; set; }
+        public decimal? AdjustmentPercent { get; set; }
+        public decimal? IndicatedValue { get; set; }
+        public string Remarks { get; set; } = string.Empty;
+    }
+}

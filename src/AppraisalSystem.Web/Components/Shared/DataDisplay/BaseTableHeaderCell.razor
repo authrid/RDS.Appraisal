@@ -1,0 +1,32 @@
+<th class="@BuildClass()" scope="@Scope">
+    @ChildContent
+</th>
+
+@code {
+    [Parameter] public string Scope { get; set; } = "col";
+    [Parameter] public string Align { get; set; } = "left";
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+
+    private string BuildClass()
+    {
+        var classes = new List<string>
+        {
+            "px-4 py-3 font-extrabold"
+        };
+
+        classes.Add(Align.ToLowerInvariant() switch
+        {
+            "center" => "text-center",
+            "right" => "text-right",
+            _ => "text-left"
+        });
+
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+
+        return string.Join(" ", classes);
+    }
+}

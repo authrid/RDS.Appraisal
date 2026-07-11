@@ -1,0 +1,48 @@
+@page "/"
+@page "/dashboard"
+@attribute [Authorize]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+
+<PageTitle>Dashboard</PageTitle>
+
+<LoadingSpinner Visible="_isLoading" Text="Mengambil ringkasan appraisal..." />
+
+@if (!_isLoading)
+{
+    <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <BaseCard Title="Total Appraisal">
+            <div class="text-4xl font-extrabold text-slate-700">@_summary.Total</div>
+        </BaseCard>
+
+        <BaseCard Title="Pending (Submitted)">
+            <div class="text-4xl font-extrabold text-amber-600">@_summary.Pending</div>
+        </BaseCard>
+
+        <BaseCard Title="Approved">
+            <div class="text-4xl font-extrabold text-emerald-600">@_summary.Approved</div>
+        </BaseCard>
+
+        <BaseCard Title="Rejected">
+            <div class="text-4xl font-extrabold text-rose-600">@_summary.Rejected</div>
+        </BaseCard>
+    </div>
+
+    <BaseCard Title="Ringkasan Workflow" Subtitle="Alur standar Appraiser -> Supervisor">
+        <ol class="mb-0 list-decimal space-y-2 pl-5 text-slate-600">
+            <li>Appraiser membuat data appraisal dan simpan sebagai draft.</li>
+            <li>Appraiser submit data untuk direview supervisor.</li>
+            <li>Supervisor approve atau reject beserta catatan.</li>
+        </ol>
+    </BaseCard>
+}
+
+@code {
+    private bool _isLoading = true;
+    private DashboardSummaryDto _summary = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _summary = await AppraisalService.GetDashboardSummaryAsync();
+        _isLoading = false;
+    }
+}

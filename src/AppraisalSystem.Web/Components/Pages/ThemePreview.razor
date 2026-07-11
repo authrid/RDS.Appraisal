@@ -1,0 +1,76 @@
+@page "/theme-preview"
+@attribute [Authorize(Roles = "Admin")]
+@inject Microsoft.Extensions.Options.IOptionsMonitor<AppraisalSystem.Web.Options.ThemeOptions> ThemeOptionsAccessor
+
+<PageTitle>Theme Preview</PageTitle>
+
+<BaseCard Title="Theme Preview" Subtitle="Validasi cepat identitas brand dari konfigurasi appsettings." Class="mx-auto w-full max-w-6xl">
+    <div class="space-y-5">
+        <BaseSectionPanel Eyebrow="Identity" Title="Brand Configuration" Subtitle="Nilai berikut dibaca langsung dari section Theme.">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Brand Name</p>
+                    <p class="mb-0 font-semibold text-slate-800">@BrandName</p>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Logo Path</p>
+                    <p class="mb-0">@Display(Theme.LogoPath)</p>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 md:col-span-2">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Login Hero Image</p>
+                    <p class="mb-0">@Display(Theme.LoginHeroImageUrl)</p>
+                </div>
+            </div>
+        </BaseSectionPanel>
+
+        <BaseSectionPanel Eyebrow="Palette" Title="Brand Color Tokens" Subtitle="Swatch ini membantu melihat output visual sebelum dipakai lintas halaman.">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6">
+                @foreach (var swatch in Swatches)
+                {
+                    <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <div class="h-14 rounded-lg border border-slate-200" style="background:@swatch.Value;"></div>
+                        <p class="mb-0 mt-2 text-xs font-bold text-slate-700">@swatch.Name</p>
+                        <p class="mb-0 text-[11px] text-slate-500">@swatch.Value</p>
+                    </div>
+                }
+            </div>
+        </BaseSectionPanel>
+
+        <BaseSectionPanel Eyebrow="Components" Title="Component Preview" Subtitle="Contoh pemakaian token di komponen shared.">
+            <div class="flex flex-wrap items-center gap-2">
+                <BaseButton Variant="brand" Size="sm">Primary Action</BaseButton>
+                <BaseButton Variant="secondary" Size="sm">Secondary</BaseButton>
+                <BaseButton Variant="danger" Size="sm">Danger</BaseButton>
+                <BaseLinkButton Href="@AppRoutes.Dashboard.Main" Variant="brand" Size="sm">Brand Link</BaseLinkButton>
+                <BaseLinkButton Href="@AppRoutes.Dashboard.Main" Variant="info" Size="sm">Info Link</BaseLinkButton>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <BaseBadge Variant="info" Size="xs">Info</BaseBadge>
+                <BaseBadge Variant="success" Size="xs">Success</BaseBadge>
+                <BaseBadge Variant="warning" Size="xs">Warning</BaseBadge>
+                <BaseBadge Variant="danger" Size="xs">Danger</BaseBadge>
+            </div>
+        </BaseSectionPanel>
+    </div>
+</BaseCard>
+
+@code {
+    private AppraisalSystem.Web.Options.ThemeOptions Theme => ThemeOptionsAccessor.CurrentValue;
+
+    private string BrandName => string.IsNullOrWhiteSpace(Theme.BrandName) ? "RDS Appraisal" : Theme.BrandName;
+
+    private IReadOnlyList<(string Name, string Value)> Swatches =>
+    [
+        ("Primary", Theme.PrimaryColor),
+        ("On Primary", Theme.OnPrimaryColor),
+        ("Primary Hover", Theme.PrimaryHoverColor),
+        ("Primary Soft", Theme.PrimarySoftColor),
+        ("Soft Border", Theme.PrimarySoftBorderColor),
+        ("Accent", Theme.AccentColor)
+    ];
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+}

@@ -1,0 +1,42 @@
+<div class="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 md:flex-row md:items-center md:justify-between">
+    <div>
+        <p class="text-sm font-semibold text-slate-700">@BuildSummary()</p>
+        <p class="text-xs text-slate-400">Page @CurrentPage dari @SafeTotalPages</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <BaseButton Variant="secondary" Size="sm" Disabled="@(!HasPreviousPage)" OnClick="HandlePreviousAsync">Prev</BaseButton>
+        <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">@CurrentPage / @SafeTotalPages</span>
+        <BaseButton Variant="secondary" Size="sm" Disabled="@(!HasNextPage)" OnClick="HandleNextAsync">Next</BaseButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; } = 1;
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public string ItemLabel { get; set; } = "data";
+    [Parameter] public EventCallback OnPrevious { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+
+    private int SafeTotalPages => Math.Max(TotalPages, 1);
+    private bool HasPreviousPage => CurrentPage > 1;
+    private bool HasNextPage => CurrentPage < SafeTotalPages;
+
+    private string BuildSummary()
+    {
+        if (TotalItems == 0)
+        {
+            return $"0 {ItemLabel}";
+        }
+
+        var start = ((CurrentPage - 1) * PageSize) + 1;
+        var end = Math.Min(CurrentPage * PageSize, TotalItems);
+        return $"Menampilkan {start}-{end} dari {TotalItems} {ItemLabel}";
+    }
+
+    private Task HandlePreviousAsync(MouseEventArgs _) => OnPrevious.InvokeAsync();
+
+    private Task HandleNextAsync(MouseEventArgs _) => OnNext.InvokeAsync();
+}

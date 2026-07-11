@@ -1,0 +1,21 @@
+@page "/report"
+@page "/report/main"
+@attribute [Authorize]
+
+<PageTitle>Report</PageTitle>
+
+<ErrorBoundary>
+    <ChildContent>
+        <BaseCard Title="Report" Subtitle="Ringkasan laporan appraisal.">
+            <p class="text-slate-600">
+                Menu report sudah tersedia. Anda bisa lanjut mengisi tabel, filter, atau export data sesuai kebutuhan laporan.
+            </p>
+        </BaseCard>
+    </ChildContent>
+    <ErrorContent Context="exception">
+        <BaseAlert Variant="danger" Class="mb-3">
+            Terjadi error saat render halaman Report.
+        </BaseAlert>
+        <div class="text-xs text-slate-500">@exception.Message</div>
+    </ErrorContent>
+</ErrorBoundary>

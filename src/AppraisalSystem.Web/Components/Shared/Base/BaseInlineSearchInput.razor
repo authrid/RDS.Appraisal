@@ -1,0 +1,16 @@
+<div class="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 @Class">
+    <span class="text-xs font-black text-slate-400">@Prefix</span>
+    <input type="text"
+           placeholder="@Placeholder"
+           value="@Value"
+           class="w-full border-0 bg-transparent p-0 text-sm text-slate-600 outline-none"
+           @attributes="AdditionalAttributes" />
+</div>
+
+@code {
+    [Parameter] public string Prefix { get; set; } = "S";
+    [Parameter] public string Placeholder { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+}

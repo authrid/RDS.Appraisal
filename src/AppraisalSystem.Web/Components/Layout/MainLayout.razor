@@ -1,0 +1,244 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject ILogger<MainLayout> Logger
+@using Microsoft.AspNetCore.WebUtilities
+
+<AuthorizeView>
+    <Authorized>
+        @{ var secondarySidebar = ActiveSecondarySidebar; }
+
+        <div class="min-h-screen bg-slate-50 text-slate-800">
+            <AppSidebar Hidden="_sidebarHidden" Compact="secondarySidebar is not null" />
+            <AppSecondarySidebar Hidden="(_sidebarHidden || secondarySidebar is null)"
+                                 OffsetForPrimaryCompact="true"
+                                 SectionLabel="@(secondarySidebar?.SectionLabel ?? string.Empty)"
+                                 Title="@(secondarySidebar?.Title ?? string.Empty)"
+                                 Items="@(secondarySidebar?.Items ?? [])" />
+
+            <main class="@MainPanelClass">
+                <AppNavbar Title="@HeaderTitle" OnToggleSidebar="ToggleSidebar" SidebarHidden="_sidebarHidden" />
+
+                <section class="px-4 pb-5 pt-4 md:px-6">
+                    @if (!string.IsNullOrWhiteSpace(WorkspaceSelectionWarning))
+                    {
+                        <div class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+                            @WorkspaceSelectionWarning
+                        </div>
+                    }
+
+                    @Body
+                </section>
+            </main>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <LayoutView Layout="typeof(EmptyLayout)">
+            @Body
+        </LayoutView>
+    </NotAuthorized>
+</AuthorizeView>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _sidebarHidden;
+    private Uri CurrentUri => new(NavigationManager.Uri);
+    private string CurrentRoute => NavigationManager.ToBaseRelativePath(CurrentUri.GetLeftPart(UriPartial.Path)).Trim('/');
+
+    private static readonly IReadOnlyList<SecondarySidebarItem> ReportItems =
+    [
+        new SecondarySidebarItem(
+            title: "Report",
+            href: AppRoutes.Report.Main,
+            match: NavLinkMatch.Prefix,
+            children:
+            [
+                new SecondarySidebarItem("Main", AppRoutes.Report.Main, NavLinkMatch.All),
+                new SecondarySidebarItem("Export", AppRoutes.Report.Export, NavLinkMatch.All)
+            ])
+    ];
+
+    private sealed record SecondarySidebarConfig(string SectionLabel, string Title, IReadOnlyList<SecondarySidebarItem> Items);
+
+    private SecondarySidebarConfig? ActiveSecondarySidebar
+    {
+        get
+        {
+            try
+            {
+                return ResolveSecondarySidebar();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed resolving secondary sidebar for route {Route}", CurrentRoute);
+                return null;
+            }
+        }
+    }
+
+    private string HeaderTitle => ActiveSecondarySidebar?.Title ?? "Appraisal System";
+
+    private string MainPanelClass => _sidebarHidden
+        ? "min-h-screen transition-all duration-[280ms] ease-out"
+        : ActiveSecondarySidebar is not null
+            ? "min-h-screen transition-all duration-[280ms] ease-out lg:pl-[24rem]"
+            : "min-h-screen transition-all duration-[280ms] ease-out lg:pl-[18rem]";
+
+    private string? WorkspaceSelectionWarning
+    {
+        get
+        {
+            if (!IsWorkspaceQueryRouteMissingSelectedId())
+            {
+                return null;
+            }
+
+            return HasSelectedIdQueryParameter()
+                ? "Parameter selectedId tidak valid. Pilih data appraisal dari halaman pencarian, lalu buka menu Main, Memo, atau History kembali."
+                : "Pilih data appraisal dari halaman pencarian terlebih dahulu agar menu Main, Memo, dan History bisa dibuka.";
+        }
+    }
+
+    private int? SelectedWorkspaceAppraisalId => ResolveSelectedWorkspaceAppraisalId();
+
+    private SecondarySidebarConfig? ResolveSecondarySidebar()
+    {
+        if (ResolvePencarianDataSidebarItems() is { Count: > 0 } pencarianDataItems)
+        {
+            return new SecondarySidebarConfig("", "Pencarian Data", pencarianDataItems);
+        }
+
+        if (CurrentRoute.StartsWith(AppRoutes.Report.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            return new SecondarySidebarConfig("", "Report", ReportItems);
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<SecondarySidebarItem>? ResolvePencarianDataSidebarItems()
+    {
+        if (!SelectedWorkspaceAppraisalId.HasValue)
+        {
+            return null;
+        }
+
+        var selectedId = SelectedWorkspaceAppraisalId.Value;
+
+        return
+        [
+            new SecondarySidebarItem(
+                title: "Main",
+                href: AppRoutes.PencarianData.Detail(selectedId),
+                match: NavLinkMatch.All,
+                children:
+                [
+                    new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All),
+                    new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All)
+                ]),
+            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoWithSelectedId(selectedId), NavLinkMatch.All),
+            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryWithSelectedId(selectedId), NavLinkMatch.All)
+        ];
+    }
+
+    private int? ResolveSelectedWorkspaceAppraisalId()
+    {
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (segments.Length >= 2
+            && AppRoutes.PencarianData.IsModuleSegment(segments[0])
+            && int.TryParse(segments[1], out var routeId))
+        {
+            return routeId;
+        }
+
+        if (segments.Length == 2
+            && string.Equals(segments[0], AppRoutes.PencarianData.Segment, StringComparison.OrdinalIgnoreCase)
+            && AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[1]))
+        {
+            return TryGetSelectedIdFromQuery();
+        }
+
+        if (segments.Length == 1
+            && AppRoutes.PencarianData.IsModuleSegment(segments[0]))
+        {
+            return TryGetSelectedIdFromQuery();
+        }
+
+        return null;
+    }
+
+    private bool IsWorkspaceQueryRouteMissingSelectedId()
+    {
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return segments.Length == 2
+            && AppRoutes.PencarianData.IsModuleSegment(segments[0])
+            && AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[1])
+            && !SelectedWorkspaceAppraisalId.HasValue;
+    }
+
+    private bool HasSelectedIdQueryParameter()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUri.Query))
+        {
+            return false;
+        }
+
+        try
+        {
+            var query = QueryHelpers.ParseQuery(CurrentUri.Query);
+            return query.ContainsKey("selectedId");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed checking selectedId key from {Uri}", CurrentUri);
+            return false;
+        }
+    }
+
+    private int? TryGetSelectedIdFromQuery()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUri.Query))
+        {
+            return null;
+        }
+
+        try
+        {
+            var query = QueryHelpers.ParseQuery(CurrentUri.Query);
+            if (!query.TryGetValue("selectedId", out var selectedIdValues))
+            {
+                return null;
+            }
+
+            var selectedIdValue = selectedIdValues.FirstOrDefault();
+            if (int.TryParse(selectedIdValue, out var selectedId))
+            {
+                return selectedId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed parsing selectedId query from {Uri}", CurrentUri);
+        }
+
+        return null;
+    }
+
+    protected override void OnInitialized() => NavigationManager.LocationChanged += HandleLocationChanged;
+
+    public void Dispose() => NavigationManager.LocationChanged -= HandleLocationChanged;
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    private Task ToggleSidebar()
+    {
+        _sidebarHidden = !_sidebarHidden;
+        return Task.CompletedTask;
+    }
+}

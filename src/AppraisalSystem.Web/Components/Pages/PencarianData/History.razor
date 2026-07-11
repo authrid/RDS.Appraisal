@@ -1,0 +1,354 @@
+﻿@page "/pencarian-data/history"
+@attribute [Authorize]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+
+<PageTitle>Pencarian Data - History</PageTitle>
+
+<BaseCard Title="History" Subtitle="Riwayat workflow per aplikasi appraisal." Class="mx-auto w-full max-w-6xl">
+    <LoadingSpinner Visible="_isLoading" Text="Memuat riwayat workflow..." />
+
+    @if (!string.IsNullOrWhiteSpace(_feedbackMessage))
+    {
+        <BaseAlert Variant="@_feedbackVariant" Class="mb-3">@_feedbackMessage</BaseAlert>
+    }
+
+    <div class="space-y-5">
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div class="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_36%),linear-gradient(180deg,#f8fbff_0%,#f1f6fd_100%)] p-5">
+                <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Workspace</p>
+                <h3 class="mt-0 mb-2 text-xl font-extrabold text-slate-800">Monitoring history activity dalam satu tampilan</h3>
+                <p class="mb-0 max-w-2xl text-sm leading-6 text-slate-600">Aktivitas workflow dari proses pengajuan akan ditampilkan berurutan, termasuk entri manual yang ditambahkan user.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Total History</p>
+                    <p class="mb-0 text-2xl font-extrabold text-slate-800">@_historyEntries.Count</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">No. Aplikasi</p>
+                    <p class="mb-0 text-base font-bold text-slate-700">@BuildSelectedAppNo()</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Status Pengajuan</p>
+                    <p class="mb-0 text-base font-bold text-slate-700">@BuildSelectedStatusLabel()</p>
+                </div>
+            </div>
+        </div>
+
+        <BaseSectionPanel Eyebrow="History Activity" Title="Daftar Riwayat" Subtitle="Menampilkan log dari WorkflowHistoryJson: Submitted, Approved, Rejected, Memo Updated, dan Workflow Updated (terbaru di atas).">
+            <RightContent>
+                <div class="flex flex-wrap gap-2">
+                    <BaseButton Variant="secondary" Size="sm" OnClick="RefreshListAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M15.5 8A5.5 5.5 0 1 0 17 12"></path>
+                                <path d="M16 4.5v4h-4"></path>
+                            </svg>
+                            <span>Refresh</span>
+                        </span>
+                    </BaseButton>
+                    <BaseButton Variant="brand" Size="sm" OnClick="ToggleAddFormAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M10 4v12"></path>
+                                <path d="M4 10h12"></path>
+                            </svg>
+                            <span>Add History</span>
+                        </span>
+                    </BaseButton>
+                </div>
+            </RightContent>
+            <ChildContent>
+                @if (_showAddForm)
+                {
+                    <div class="mb-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div class="mb-3 rounded-xl border border-slate-200 bg-white/75 p-3 text-sm text-slate-600">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Data Pengajuan Terpilih</p>
+                            <p class="mb-1"><span class="font-semibold text-slate-700">No. Aplikasi:</span> @BuildSelectedAppNo()</p>
+                            <p class="mb-1"><span class="font-semibold text-slate-700">Debitur:</span> @BuildSelectedDebtorName()</p>
+                            <p class="mb-0"><span class="font-semibold text-slate-700">Status:</span> @BuildSelectedStatusLabel()</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3 xl:grid-cols-[0.8fr_1.2fr_auto] xl:items-end">
+                            <BaseTextField Id="historyAction" Label="Action" @bind-Value="_newAction" Placeholder="Contoh: Submit for Review" />
+                            <BaseTextAreaField Id="historyNote" Label="Catatan" @bind-Value="_newNote" UpdateOnInput="true" InputClass="min-h-24" Placeholder="Tulis detail aktivitas workflow..." />
+
+                            <div class="mb-1 flex flex-col gap-2 sm:flex-row xl:justify-end">
+                                <BaseButton Variant="secondary-muted" Size="sm" Class="w-full sm:w-auto" OnClick="CancelAddAsync">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M5 5l10 10"></path>
+                                            <path d="M15 5L5 15"></path>
+                                        </svg>
+                                        <span>Batal</span>
+                                    </span>
+                                </BaseButton>
+                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="AddHistoryAsync" Disabled="@(!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newAction) || _isSaving)">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M4.5 10.5l3.2 3.2 7.8-7.8"></path>
+                                        </svg>
+                                        <span>Save History</span>
+                                    </span>
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <BaseTable TItem="WorkflowEntry" Items="_historyEntries.OrderByDescending(x => x.TimestampUtc).ToList()" ColSpan="4" EmptyText="Belum ada riwayat workflow untuk appraisal terpilih.">
+                    <HeaderTemplate>
+                        <BaseTableHeaderCell Class="w-44">Tanggal</BaseTableHeaderCell>
+                        <BaseTableHeaderCell Class="w-44">Action</BaseTableHeaderCell>
+                        <BaseTableHeaderCell>Aktivitas</BaseTableHeaderCell>
+                        <BaseTableHeaderCell Class="w-36">Dibuat Oleh</BaseTableHeaderCell>
+                    </HeaderTemplate>
+                    <RowTemplate Context="entry">
+                        <BaseTableCell Tone="soft">@entry.TimestampUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</BaseTableCell>
+                        <BaseTableCell Tone="strong">@Display(entry.Action)</BaseTableCell>
+                        <BaseTableCell>
+                            <p class="mb-0 text-sm text-slate-700 whitespace-pre-wrap">@Display(entry.Note)</p>
+                        </BaseTableCell>
+                        <BaseTableCell Tone="default">@Display(entry.Actor)</BaseTableCell>
+                    </RowTemplate>
+                </BaseTable>
+            </ChildContent>
+        </BaseSectionPanel>
+    </div>
+</BaseCard>
+
+@code {
+    [SupplyParameterFromQuery(Name = "selectedId")] public int? SelectedId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private int? _selectedId;
+    private AppraisalDetailDto? _detail;
+    private List<WorkflowEntry> _historyEntries = [];
+    private string _newAction = "Workflow Updated";
+    private string _newNote = string.Empty;
+    private bool _isLoading;
+    private bool _isSaving;
+    private bool _showAddForm;
+    private string _feedbackMessage = string.Empty;
+    private string _feedbackVariant = "info";
+
+    protected override Task OnInitializedAsync() => RefreshListCoreAsync();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedId != _selectedId)
+        {
+            _selectedId = SelectedId;
+            await RefreshListCoreAsync();
+        }
+    }
+
+    private Task RefreshListAsync(MouseEventArgs _) => RefreshListCoreAsync();
+
+    private Task ToggleAddFormAsync(MouseEventArgs _)
+    {
+        _showAddForm = !_showAddForm;
+        if (!_showAddForm)
+        {
+            _newAction = "Workflow Updated";
+            _newNote = string.Empty;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task CancelAddAsync(MouseEventArgs _)
+    {
+        _showAddForm = false;
+        _newAction = "Workflow Updated";
+        _newNote = string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private async Task RefreshListCoreAsync()
+    {
+        _isLoading = true;
+        _feedbackMessage = string.Empty;
+
+        try
+        {
+            if (!_selectedId.HasValue)
+            {
+                _detail = null;
+                _historyEntries = [];
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Pilih aplikasi terlebih dahulu dari halaman utama agar history bisa ditampilkan.";
+                return;
+            }
+
+            _detail = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            if (_detail is null)
+            {
+                _historyEntries = [];
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Data appraisal tidak ditemukan.";
+                return;
+            }
+
+            _historyEntries = ParseWorkflowHistory(_detail.WorkflowHistoryJson);
+        }
+        catch (Exception ex)
+        {
+            _feedbackVariant = "danger";
+            _feedbackMessage = $"Gagal memuat history: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddHistoryAsync(MouseEventArgs _)
+    {
+        if (!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newAction))
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _feedbackMessage = string.Empty;
+
+        try
+        {
+            var latest = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            if (latest is null)
+            {
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Data appraisal tidak ditemukan saat simpan history.";
+                return;
+            }
+
+            var entries = ParseWorkflowHistory(latest.WorkflowHistoryJson);
+            entries.Add(new WorkflowEntry
+            {
+                TimestampUtc = DateTime.UtcNow,
+                Actor = await ResolveActorNameAsync(),
+                Action = _newAction.Trim(),
+                Note = string.IsNullOrWhiteSpace(_newNote) ? "Update workflow tanpa catatan tambahan." : _newNote.Trim()
+            });
+
+            var payload = MapToUpsert(latest);
+            payload.WorkflowHistoryJson = SerializeWorkflowHistory(entries);
+
+            await AppraisalService.UpdateAsync(payload);
+
+            _feedbackVariant = "success";
+            _feedbackMessage = "Riwayat workflow berhasil ditambahkan.";
+            _showAddForm = false;
+            _newAction = "Workflow Updated";
+            _newNote = string.Empty;
+
+            await RefreshListCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            _feedbackVariant = "danger";
+            _feedbackMessage = $"Gagal menambah history: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task<string> ResolveActorNameAsync()
+    {
+        var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        return string.IsNullOrWhiteSpace(authState.User.Identity?.Name)
+            ? "System User"
+            : authState.User.Identity!.Name!;
+    }
+
+    private string BuildSelectedAppNo()
+        => _detail is null ? "-" : (string.IsNullOrWhiteSpace(_detail.ApplicationNumber) ? $"APP-{_detail.Id:0000}" : _detail.ApplicationNumber);
+
+    private string BuildSelectedDebtorName()
+        => Display(_detail?.DebtorName);
+
+    private string BuildSelectedStatusLabel()
+        => _detail is null ? "-" : _detail.Status.ToString();
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static AppraisalUpsertDto MapToUpsert(AppraisalDetailDto detail)
+    {
+        return new AppraisalUpsertDto
+        {
+            Id = detail.Id,
+            ApplicationNumber = detail.ApplicationNumber,
+            Segment = detail.Segment,
+            MakerId = detail.MakerId,
+            BranchCode = detail.BranchCode,
+            ApplicationDateUtc = detail.ApplicationDateUtc,
+            ApplicantType = detail.ApplicantType,
+            DeedNumber = detail.DeedNumber,
+            DateOfBirth = detail.DateOfBirth,
+            BusinessEstablishedDate = detail.BusinessEstablishedDate,
+            LegalEntity = detail.LegalEntity,
+            BirthPlace = detail.BirthPlace,
+            Gender = detail.Gender,
+            MaritalStatus = detail.MaritalStatus,
+            AddressLine1 = detail.AddressLine1,
+            AddressLine2 = detail.AddressLine2,
+            AddressLine3 = detail.AddressLine3,
+            Rt = detail.Rt,
+            Rw = detail.Rw,
+            PostalCode = detail.PostalCode,
+            Subdistrict = detail.Subdistrict,
+            District = detail.District,
+            City = detail.City,
+            Province = detail.Province,
+            Country = detail.Country,
+            PhoneNumber = detail.PhoneNumber,
+            MobileNumber1 = detail.MobileNumber1,
+            MobileNumber2 = detail.MobileNumber2,
+            Email = detail.Email,
+            DebtorName = detail.DebtorName,
+            IdentityNumber = detail.IdentityNumber,
+            CollateralType = detail.CollateralType,
+            CollateralSubtype = detail.CollateralSubtype,
+            Location = detail.Location,
+            Specification = detail.Specification,
+            MarketValue = detail.MarketValue,
+            LiquidationValue = detail.LiquidationValue,
+            Notes = detail.Notes,
+            InternalMemo = detail.InternalMemo,
+            WorkflowHistoryJson = detail.WorkflowHistoryJson
+        };
+    }
+
+    private static List<WorkflowEntry> ParseWorkflowHistory(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return [];
+        }
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<WorkflowEntry>>(raw) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeWorkflowHistory(IReadOnlyList<WorkflowEntry> entries)
+        => System.Text.Json.JsonSerializer.Serialize(entries);
+
+    private sealed class WorkflowEntry
+    {
+        public DateTime TimestampUtc { get; set; }
+        public string Actor { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+    }
+}

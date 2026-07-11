@@ -1,0 +1,10 @@
+@page "/access-denied"
+@layout EmptyLayout
+
+<PageTitle>Akses Ditolak</PageTitle>
+
+<div class="auth-page">
+    <BaseCard Title="Akses Ditolak" Subtitle="Role Anda tidak memiliki izin untuk halaman ini.">
+        <BaseLinkButton Href="@AppRoutes.Dashboard.Main" Variant="brand">Kembali ke Dashboard</BaseLinkButton>
+    </BaseCard>
+</div>

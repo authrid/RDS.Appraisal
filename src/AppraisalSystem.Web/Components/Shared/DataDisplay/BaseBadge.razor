@@ -1,0 +1,40 @@
+<span class="@BuildClass()">
+    @ChildContent
+</span>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "neutral";
+    [Parameter] public string Size { get; set; } = "sm";
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+
+    private string BuildClass()
+    {
+        var classes = new List<string>
+        {
+            "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.06em]"
+        };
+
+        classes.Add(Size.ToLowerInvariant() switch
+        {
+            "xs" => "px-2.5 py-1 text-[10px]",
+            _ => "px-3 py-1 text-[11px]"
+        });
+
+        classes.Add(Variant.ToLowerInvariant() switch
+        {
+            "success" => "border-emerald-200 bg-emerald-50 text-emerald-700",
+            "danger" => "border-rose-200 bg-rose-50 text-rose-700",
+            "warning" => "border-amber-200 bg-amber-50 text-amber-700",
+            "info" => "theme-badge-info",
+            _ => "border-slate-200 bg-slate-50 text-slate-600"
+        });
+
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+
+        return string.Join(" ", classes);
+    }
+}

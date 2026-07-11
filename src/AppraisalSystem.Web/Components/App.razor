@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+@inject Microsoft.Extensions.Options.IOptionsMonitor<AppraisalSystem.Web.Options.ThemeOptions> ThemeOptionsAccessor
+@inject NavigationManager NavigationManager
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistem Appraisal berbasis Blazor .NET 10" />
+    <base href="@NavigationManager.BaseUri" />
+    <ResourcePreloader />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --brand-primary: @PrimaryColor;
+            --brand-on-primary: @OnPrimaryColor;
+            --brand-primary-hover: @PrimaryHoverColor;
+            --brand-primary-soft: @PrimarySoftColor;
+            --brand-primary-soft-border: @PrimarySoftBorderColor;
+            --brand-accent: @AccentColor;
+        }
+    </style>
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["AppraisalSystem.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+    <script src="@Assets["js/focus-modality.js"]"></script>
+    <script src="@Assets["js/compact-tooltip.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    private AppraisalSystem.Web.Options.ThemeOptions Theme => ThemeOptionsAccessor.CurrentValue;
+
+    private string PrimaryColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.PrimaryColor, "#113a69");
+    private string OnPrimaryColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.OnPrimaryColor, "#ffffff");
+    private string PrimaryHoverColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.PrimaryHoverColor, "#0c2f57");
+    private string PrimarySoftColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.PrimarySoftColor, "#eef4ff");
+    private string PrimarySoftBorderColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.PrimarySoftBorderColor, "#bfd3f6");
+    private string AccentColor => AppraisalSystem.Web.Options.ThemeOptionsValidator.NormalizeHexOrDefault(Theme.AccentColor, "#4f7ac4");
+}

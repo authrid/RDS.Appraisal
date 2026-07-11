@@ -1,0 +1,20 @@
+@page "/report/export"
+@attribute [Authorize]
+
+<PageTitle>Report - Export</PageTitle>
+
+<ErrorBoundary>
+    <ChildContent>
+        <BaseCard Title="Report Export" Subtitle="Placeholder untuk fitur export laporan.">
+            <p class="text-slate-600">
+                Halaman ini disiapkan untuk kebutuhan export report ke format seperti Excel atau PDF.
+            </p>
+        </BaseCard>
+    </ChildContent>
+    <ErrorContent Context="exception">
+        <BaseAlert Variant="danger" Class="mb-3">
+            Terjadi error saat render halaman Report Export.
+        </BaseAlert>
+        <div class="text-xs text-slate-500">@exception.Message</div>
+    </ErrorContent>
+</ErrorBoundary>

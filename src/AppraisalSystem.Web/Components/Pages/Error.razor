@@ -1,0 +1,29 @@
+﻿@page "/Error"
+@using System.Diagnostics
+@layout EmptyLayout
+
+<PageTitle>Error</PageTitle>
+
+<div class="auth-page">
+    <BaseCard Title="Terjadi Kesalahan" Subtitle="Sistem mengalami gangguan saat memproses request Anda.">
+        @if (ShowRequestId)
+        {
+            <p><strong>Request ID:</strong> <code>@RequestId</code></p>
+        }
+
+        <p class="mb-0">
+            Untuk debugging lokal, gunakan environment <strong>Development</strong>.
+        </p>
+    </BaseCard>
+</div>
+
+@code{
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

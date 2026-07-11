@@ -1,0 +1,77 @@
+<header class="mx-3 mt-3 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm md:mx-4 md:px-5"
+    style="border-color: var(--theme-panel-border-strong); background: var(--theme-panel-bg);">
+    <div class="flex items-center gap-2">
+        <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-slate-600 transition"
+            style="border-color: var(--theme-panel-border); background: var(--theme-panel-soft-bg); color: var(--theme-text-default);"
+                @onclick="ToggleSidebar"
+                title="@SidebarToggleTitle"
+                aria-label="@SidebarToggleTitle">
+            <span class="flex flex-col gap-1" aria-hidden="true">
+                <span class="h-0.5 w-3 rounded-full bg-current"></span>
+                <span class="h-0.5 w-4 rounded-full bg-current"></span>
+                <span class="h-0.5 w-2 rounded-full bg-current"></span>
+            </span>
+        </button>
+
+        <div>
+            <p class="mb-0 text-[11px] font-bold uppercase tracking-[0.08em]" style="color: var(--theme-text-muted);">Dashboard / Appraisal</p>
+            <h1 class="app-navbar__title m-0 text-lg font-bold" style="color: var(--theme-text-strong);">@Title</h1>
+        </div>
+    </div>
+
+    <div class="ml-auto flex w-full flex-wrap items-center justify-end gap-2 md:w-auto md:flex-nowrap">
+        <BaseInlineSearchInput Placeholder="Search menu or appraisal..." Class="md:w-72" />
+
+        <button class="grid h-9 w-9 place-items-center rounded-xl border text-xs font-black"
+            style="border-color: var(--theme-panel-border); background: var(--theme-panel-soft-bg); color: var(--theme-text-muted);"
+            title="Notifications">N</button>
+
+        <AuthorizeView>
+            <Authorized Context="authState">
+                <div class="flex items-center gap-2 rounded-xl border px-2 py-1"
+                     style="border-color: var(--theme-panel-border); background: var(--theme-panel-bg);">
+                    <div class="grid h-8 w-8 place-items-center rounded-lg text-xs font-black text-white"
+                         style="background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover), var(--brand-accent));">@GetInitial(authState.User.Identity?.Name)</div>
+                    <div class="hidden leading-tight md:block">
+                        <strong class="block text-xs font-bold" style="color: var(--theme-text-strong);">@authState.User.Identity?.Name</strong>
+                        <small class="text-[11px]" style="color: var(--theme-text-muted);">Authenticated User</small>
+                    </div>
+
+                    <form action="@LogoutPostAction" method="post">
+                        <BaseButton ButtonType="submit" Variant="secondary" Size="sm" Class="text-xs">Logout</BaseButton>
+                    </form>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</header>
+
+@code {
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    [Parameter] public string Title { get; set; } = "Appraisal Dashboard";
+    [Parameter] public bool SidebarHidden { get; set; }
+    [Parameter] public EventCallback OnToggleSidebar { get; set; }
+
+    private string SidebarToggleTitle => SidebarHidden ? "Show sidebar menu" : "Hide sidebar menu";
+
+    private string LogoutPostAction => ResolveAppRoute(AppRoutes.Account.LogoutPost);
+
+    private static string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "U";
+        }
+
+        return char.ToUpperInvariant(name.Trim()[0]).ToString();
+    }
+
+    private Task ToggleSidebar() => OnToggleSidebar.InvokeAsync();
+
+    private string ResolveAppRoute(string route)
+    {
+        var normalizedRoute = route.StartsWith("/", StringComparison.Ordinal) ? route[1..] : route;
+        return new Uri(new Uri(NavigationManager.BaseUri), normalizedRoute).PathAndQuery;
+    }
+}

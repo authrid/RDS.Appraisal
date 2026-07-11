@@ -1,0 +1,29 @@
+@typeparam TValue
+
+<BaseFormInput Id="@Id" Label="@Label" Hint="@Hint" Class="@Class">
+    <InputSelect id="@Id"
+                 Value="@Value"
+                 ValueChanged="@ValueChanged"
+                 ValueExpression="@ValueExpression"
+                 class="@BuildClass()"
+                 @attributes="AdditionalAttributes">
+        @ChildContent
+    </InputSelect>
+</BaseFormInput>
+
+@code {
+    [Parameter] public required string Id { get; set; }
+    [Parameter] public required string Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
+    [Parameter] public Expression<Func<TValue?>>? ValueExpression { get; set; }
+    [Parameter] public string InputClass { get; set; } = string.Empty;
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string BuildClass() => string.IsNullOrWhiteSpace(InputClass)
+        ? "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+        : $"w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 {InputClass}";
+}

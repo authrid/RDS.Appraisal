@@ -1,0 +1,16 @@
+<div class="mb-4 flex flex-col gap-1.5 @Class">
+    <label for="@Id" class="text-sm font-semibold text-slate-600">@Label</label>
+    @ChildContent
+    @if (!string.IsNullOrWhiteSpace(Hint))
+    {
+        <small class="text-xs text-slate-400">@Hint</small>
+    }
+</div>
+
+@code {
+    [Parameter] public required string Id { get; set; }
+    [Parameter] public required string Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+}

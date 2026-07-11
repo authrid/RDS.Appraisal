@@ -1,0 +1,124 @@
+<BaseFormInput Id="@Id" Label="@Label" Hint="@Hint" Class="@Class">
+    <button type="button"
+            id="@Id"
+            @onclick="OpenModal"
+            class="@BuildTriggerClass()">
+        <span class="truncate">@DisplayValue</span>
+        <span class="text-slate-400">Cari</span>
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4" @onclick="CloseModal">
+            <div class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl" @onclick:stopPropagation>
+                <div class="border-b border-slate-200 px-4 py-3">
+                    <h4 class="text-base font-bold text-slate-700">@ModalTitle</h4>
+                    <p class="mt-1 text-sm text-slate-500">@ModalSubtitle</p>
+                </div>
+
+                <div class="px-4 py-3">
+                    <input type="text"
+                           @bind="_search"
+                           @bind:event="oninput"
+                           placeholder="@SearchPlaceholder"
+                           class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+                </div>
+
+                <div class="max-h-80 overflow-y-auto border-y border-slate-100 px-2 py-2">
+                    @if (FilteredOptions.Count == 0)
+                    {
+                        <p class="px-3 py-2 text-sm text-slate-500">@NotFoundText</p>
+                    }
+                    else
+                    {
+                        @foreach (var option in FilteredOptions)
+                        {
+                            var isActive = string.Equals(option, Value, StringComparison.OrdinalIgnoreCase);
+                            <button type="button"
+                                    @onclick="() => SelectOption(option)"
+                                    class="mb-1 w-full rounded-xl px-3 py-2 text-left text-sm transition @(isActive ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100")">
+                                @option
+                            </button>
+                        }
+                    }
+                </div>
+
+                <div class="flex items-center justify-end gap-2 px-4 py-3">
+                    @if (!string.IsNullOrWhiteSpace(Value))
+                    {
+                        <button type="button"
+                                @onclick="ClearSelection"
+                                class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                            Bersihkan
+                        </button>
+                    }
+
+                    <button type="button"
+                            @onclick="CloseModal"
+                            class="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</BaseFormInput>
+
+@code {
+    [Parameter] public required string Id { get; set; }
+    [Parameter] public required string Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public string InputClass { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyList<string> Options { get; set; } = [];
+    [Parameter] public string Placeholder { get; set; } = "Pilih data";
+    [Parameter] public string ModalTitle { get; set; } = "Pilih Data";
+    [Parameter] public string ModalSubtitle { get; set; } = "Gunakan pencarian untuk mempercepat pemilihan.";
+    [Parameter] public string SearchPlaceholder { get; set; } = "Ketik untuk mencari...";
+    [Parameter] public string NotFoundText { get; set; } = "Data tidak ditemukan.";
+
+    private bool _isOpen;
+    private string _search = string.Empty;
+
+    private string DisplayValue => string.IsNullOrWhiteSpace(Value) ? Placeholder : Value;
+
+    private List<string> FilteredOptions
+        => Options
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Where(x => string.IsNullOrWhiteSpace(_search)
+                || x.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+
+    private string BuildTriggerClass()
+    {
+        var baseClass = "flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-100";
+        return string.IsNullOrWhiteSpace(InputClass) ? baseClass : $"{baseClass} {InputClass}";
+    }
+
+    private void OpenModal()
+    {
+        _search = string.Empty;
+        _isOpen = true;
+    }
+
+    private void CloseModal()
+    {
+        _isOpen = false;
+    }
+
+    private async Task SelectOption(string option)
+    {
+        await ValueChanged.InvokeAsync(option);
+        _isOpen = false;
+    }
+
+    private async Task ClearSelection()
+    {
+        await ValueChanged.InvokeAsync(string.Empty);
+        _isOpen = false;
+    }
+}

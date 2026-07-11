@@ -1,0 +1,197 @@
+@inject Microsoft.Extensions.Options.IOptionsMonitor<AppraisalSystem.Web.Options.ThemeOptions> ThemeOptionsAccessor
+@inject NavigationManager NavigationManager
+
+<aside class="@SidebarClass" style="@SidebarStyle">
+    <div class="border-b border-slate-200/80 @(Compact ? "pb-3" : "pb-5")">
+        <a href="@DashboardHref" class="@BrandClass" title="Dashboard" aria-label="Dashboard">
+            @if (HasLogoPath)
+            {
+                <img src="@ResolvedLogoPath" alt="@BrandName" class="theme-brand-logo h-10 w-10 rounded-2xl object-cover" />
+            }
+            else
+            {
+                <span class="theme-brand-mark grid h-10 w-10 place-items-center rounded-2xl">
+                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <rect x="3.5" y="3.5" width="4" height="13" rx="1.2"></rect>
+                        <rect x="8.5" y="7" width="3.5" height="9.5" rx="1.2"></rect>
+                        <rect x="13" y="5" width="3.5" height="11.5" rx="1.2"></rect>
+                    </svg>
+                </span>
+            }
+            @if (!Compact)
+            {
+                <span class="leading-tight">
+                    <strong class="block text-[1.02rem] font-extrabold tracking-[-0.02em] text-slate-800">@BrandName</strong>
+                    <small class="text-xs font-semibold text-slate-400">Internal System</small>
+                </span>
+            }
+        </a>
+    </div>
+
+    <nav class="@NavClass">
+        <section>
+            @if (!Compact)
+            {
+                <p class="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Sidebar 1</p>
+            }
+
+            <div class="flex flex-col gap-1">
+                @foreach (var link in SidebarLinks)
+                {
+                    var resolvedHref = NavigationManager.ToAppPath(link.Href);
+
+                    if (string.IsNullOrWhiteSpace(link.Roles))
+                    {
+                        <NavLink href="@resolvedHref"
+                                 class="@GetLinkClass()"
+                                 Match="@link.Match"
+                                 aria-label="@link.Title"
+                                 data-compact-tooltip="@(Compact ? link.Title : null)">
+                            <span class="sidebar-icon-shell grid h-8 w-8 place-items-center bg-white text-slate-500">
+                                @RenderIcon(link.Icon)
+                            </span>
+                            @if (!Compact)
+                            {
+                                <span class="sidebar-link__text text-sm font-semibold text-slate-700">@link.Title</span>
+                            }
+                        </NavLink>
+                    }
+                    else
+                    {
+                        <AuthorizeView Roles="@link.Roles">
+                            <NavLink href="@resolvedHref"
+                                     class="@GetLinkClass()"
+                                     Match="@link.Match"
+                                     aria-label="@link.Title"
+                                     data-compact-tooltip="@(Compact ? link.Title : null)">
+                                <span class="sidebar-icon-shell grid h-8 w-8 place-items-center bg-white text-slate-500">
+                                    @RenderIcon(link.Icon)
+                                </span>
+                                @if (!Compact)
+                                {
+                                    <span class="sidebar-link__text text-sm font-semibold text-slate-700">@link.Title</span>
+                                }
+                            </NavLink>
+                        </AuthorizeView>
+                    }
+                }
+            </div>
+        </section>
+    </nav>
+
+    @if (!Compact)
+    {
+        <div class="mt-5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+            <p class="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Workflow Active</p>
+            <p class="mt-2 text-sm font-semibold text-slate-700">Appraiser to Supervisor</p>
+            <p class="mt-1 text-xs leading-5 text-slate-500">Seluruh appraisal bergerak dari draft, submit, review, hingga keputusan akhir supervisor.</p>
+        </div>
+    }
+</aside>
+
+@code {
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool Compact { get; set; }
+
+    private AppraisalSystem.Web.Options.ThemeOptions Theme => ThemeOptionsAccessor.CurrentValue;
+
+    private bool HasLogoPath => !string.IsNullOrWhiteSpace(Theme.LogoPath);
+
+    private string DashboardHref => NavigationManager.ToAppPath(AppRoutes.Dashboard.Main);
+
+    private string ResolvedLogoPath => ResolveAssetUrl(Theme.LogoPath);
+
+    private string BrandName => string.IsNullOrWhiteSpace(Theme.BrandName) ? "RDS Appraisal" : Theme.BrandName;
+
+    private IReadOnlyList<SidebarLinkItem> SidebarLinks =>
+    [
+        new SidebarLinkItem("dashboard", "Dashboard", AppRoutes.Dashboard.Main, SidebarIcon.Dashboard, NavLinkMatch.All),
+        new SidebarLinkItem("pencarian-data", "Pencarian Data", AppRoutes.PencarianData.Main, SidebarIcon.Appraisal, NavLinkMatch.Prefix),
+        new SidebarLinkItem("pengkinian-data", "Pengkinian Data", AppRoutes.PengkinianData.Main, SidebarIcon.Updating, NavLinkMatch.All),
+        new SidebarLinkItem("inquiry", "Inquiry", AppRoutes.Inquiry.Main, SidebarIcon.Search, NavLinkMatch.All),
+        new SidebarLinkItem("report", "Report", AppRoutes.Report.Main, SidebarIcon.Report, NavLinkMatch.Prefix),
+        new SidebarLinkItem("theme-preview", "Theme Preview", AppRoutes.SystemPages.ThemePreview, SidebarIcon.Report, NavLinkMatch.All, "Admin")
+    ];
+
+    private string SidebarClass => "fixed bottom-3 left-3 top-3 z-40 flex flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_65px_rgba(15,23,42,0.12)] transition-[transform,opacity,width,padding] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform";
+
+    private string SidebarStyle
+    {
+        get
+        {
+            var transform = Hidden ? "transform: translateX(calc(-100% - 1rem));" : "transform: translateX(0);";
+            var width = Compact ? "width: 4.9rem;" : "width: 17.5rem;";
+            var padding = Compact ? "padding: 1.1rem 0.75rem;" : "padding: 1.25rem 1rem;";
+            var opacity = Hidden ? "opacity: 0;" : "opacity: 1;";
+            var pointerEvents = Hidden ? "pointer-events: none;" : "pointer-events: auto;";
+            return $"{transform} {width} {padding} {opacity} {pointerEvents}";
+        }
+    }
+
+    private string NavClass => "mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-0.5 sidebar-scroll-smooth";
+
+    private string BrandClass => Compact
+        ? "flex items-center justify-center no-underline"
+        : "flex items-center gap-3 no-underline";
+
+    private string GetLinkClass() => Compact
+        ? "sidebar-link sidebar-link--compact relative flex items-center justify-center border-l-2 border-transparent bg-transparent px-2 py-2 no-underline transition hover:bg-slate-50/70"
+        : "sidebar-link flex items-center gap-2.5 border-l-2 border-transparent bg-transparent px-2 py-2 no-underline transition hover:bg-slate-50/70";
+
+    private string ResolveAssetUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(path, UriKind.Absolute, out _)
+            || path.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return path;
+        }
+
+        var normalizedPath = path.StartsWith("~/", StringComparison.Ordinal)
+            ? path[2..]
+            : path.TrimStart('/');
+
+        return new Uri(new Uri(NavigationManager.BaseUri), normalizedPath).ToString();
+    }
+
+    private static RenderFragment RenderIcon(SidebarIcon icon) => builder =>
+    {
+        switch (icon)
+        {
+            case SidebarIcon.Dashboard:
+                builder.AddMarkupContent(0, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"3.5\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"11\" y=\"3.5\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"3.5\" y=\"11\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"11\" y=\"11\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect></svg>");
+                break;
+            case SidebarIcon.Appraisal:
+                builder.AddMarkupContent(1, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M4 4.5h12\"></path><path d=\"M4 8.5h12\"></path><path d=\"M4 12.5h8\"></path><path d=\"M4 16.5h8\"></path></svg>");
+                break;
+            case SidebarIcon.Updating:
+                builder.AddMarkupContent(2, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M4.5 10a5.5 5.5 0 0 1 9.42-3.89\"></path><path d=\"M14.5 5.5V8h-2.5\"></path><path d=\"M15.5 10a5.5 5.5 0 0 1-9.42 3.89\"></path><path d=\"M5.5 14.5V12h2.5\"></path></svg>");
+                break;
+            case SidebarIcon.Search:
+                builder.AddMarkupContent(3, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><circle cx=\"8.5\" cy=\"8.5\" r=\"4.75\"></circle><path d=\"M12 12l4 4\"></path></svg>");
+                break;
+            case SidebarIcon.Report:
+                builder.AddMarkupContent(4, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M5 3.5h7l3.5 3.5V16.5H5z\"></path><path d=\"M12 3.5V7h3.5\"></path><path d=\"M7 10.5h6\"></path><path d=\"M7 13.5h6\"></path></svg>");
+                break;
+            default:
+                builder.AddMarkupContent(0, string.Empty);
+                break;
+        }
+    };
+
+    private sealed record SidebarLinkItem(string Key, string Title, string Href, SidebarIcon Icon, NavLinkMatch Match, string? Roles = null);
+
+    private enum SidebarIcon
+    {
+        None,
+        Dashboard,
+        Appraisal,
+        Updating,
+        Search,
+        Report
+    }
+}

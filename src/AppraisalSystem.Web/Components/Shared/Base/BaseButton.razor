@@ -1,0 +1,59 @@
+<button type="@ButtonType"
+        class="@BuildClass()"
+        disabled="@Disabled"
+        @onclick="HandleClickAsync"
+        @attributes="AdditionalAttributes">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public string ButtonType { get; set; } = "button";
+    [Parameter] public string Variant { get; set; } = "primary";
+    [Parameter] public string Size { get; set; } = "md";
+    [Parameter] public bool FullWidth { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string BuildClass()
+    {
+        var classes = new List<string>
+        {
+            "inline-flex items-center justify-center gap-1.5 border font-semibold transition focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        };
+
+        classes.Add(Size.ToLowerInvariant() switch
+        {
+            "sm" => "rounded-lg px-2.5 py-1.5 text-sm",
+            "lg" => "rounded-xl px-3.5 py-2.5 text-sm",
+            _ => "rounded-lg px-3 py-2 text-sm"
+        });
+
+        classes.Add(Variant.ToLowerInvariant() switch
+        {
+            "primary" => "theme-btn-brand",
+            "brand" => "theme-btn-brand",
+            "secondary" => "theme-btn-secondary",
+            "danger" => "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
+            "success" => "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700",
+            "warning" => "border-amber-500 bg-amber-500 text-white hover:bg-amber-600",
+            _ => "theme-btn-brand"
+        });
+
+        if (FullWidth)
+        {
+            classes.Add("w-full");
+        }
+
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private Task HandleClickAsync(MouseEventArgs args) => OnClick.InvokeAsync(args);
+}

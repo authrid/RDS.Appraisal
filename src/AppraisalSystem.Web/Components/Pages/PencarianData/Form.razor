@@ -1,0 +1,620 @@
+@page "/appraisals/create"
+@page "/appraisals/{Id:int}/edit"
+@page "/pencarian-data/create"
+@page "/pencarian-data/{Id:int}/edit"
+@attribute [Authorize(Roles = "Appraiser,Supervisor,Admin")]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Form Appraisal</PageTitle>
+
+<BaseCard Title="Form Appraisal" Subtitle="Lengkapi data debitur, aplikasi, dan detail agunan secara ringkas." Class="mx-auto w-full max-w-6xl">
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <BaseValidationSummary />
+
+        <div class="space-y-5">
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="border-b border-slate-200 pb-3">
+                    <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Data Aplikasi</p>
+                    <p class="mt-1 mb-0 text-sm text-slate-500">Isi detail utama aplikasi agar proses appraisal lebih terstruktur.</p>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Informasi Utama</p> *@
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <BaseTextField Id="applicationNumber" Label="No. Aplikasi" Class="md:col-span-2" @bind-Value="_model.ApplicationNumber" Placeholder="Auto Generated" />
+
+                            <BaseSelectField TValue="CustomerSegment" Id="segment" Label="Segment" @bind-Value="_model.Segment">
+                                @foreach (var segment in Enum.GetValues<CustomerSegment>().Where(x => x != CustomerSegment.Unknown))
+                                {
+                                    <option value="@segment">@segment</option>
+                                }
+                            </BaseSelectField>
+
+                            <BaseTextField Id="makerId" Label="Maker" @bind-Value="_model.MakerId" />
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Konteks Aplikasi</p> *@
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <BaseTextField Id="branchCode" Label="Cabang" Class="md:col-span-2" @bind-Value="_model.BranchCode" />
+
+                            <BaseFormInput Id="applicationDateUtc" Label="Tanggal Aplikasi">
+                                <InputDate TValue="DateTime?"
+                                           id="applicationDateUtc"
+                                           @bind-Value="_model.ApplicationDateUtc"
+                                           class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+                            </BaseFormInput>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                    <div>
+                        <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Data Pengajuan</p>
+                        <p class="mt-1 mb-0 text-sm text-slate-500">Pilih jenis nasabah untuk menyesuaikan input identitas.</p>
+                    </div>
+
+                    <InputRadioGroup @bind-Value="_model.ApplicantType" Name="applicantType">
+                        <div class="flex flex-wrap gap-2 text-sm text-slate-700">
+                            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                <InputRadio Value="@ApplicantType.Business" />
+                                <span>Badan Usaha</span>
+                            </label>
+
+                            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                <InputRadio Value="@ApplicantType.Individual" />
+                                <span>Perorangan</span>
+                            </label>
+                        </div>
+                    </InputRadioGroup>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Identitas Debitur</p> *@
+
+                        @if (_model.ApplicantType == ApplicantType.Business)
+                        {
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <BaseSelectField TValue="string" Id="legalEntity" Label="Badan Hukum" @bind-Value="_model.LegalEntity">
+                                    <option value="">Pilih Badan Hukum</option>
+                                    @foreach (var legalEntity in _legalEntityOptions)
+                                    {
+                                        <option value="@legalEntity">@legalEntity</option>
+                                    }
+                                </BaseSelectField>
+
+                                <BaseTextField Id="debtorName" Label="Nama Perusahaan" @bind-Value="_model.DebtorName" />
+                                <BaseTextField Id="deedNumber" Label="No Akta" @bind-Value="_model.DeedNumber" />
+                                <BaseTextField Id="identityNumber" Label="No NPWP" @bind-Value="_model.IdentityNumber" />
+
+                                <BaseFormInput Id="businessEstablishedDate" Label="Tanggal Pendirian Usaha" Class="md:col-span-2">
+                                    <InputDate TValue="DateTime?"
+                                               id="businessEstablishedDate"
+                                               @bind-Value="_model.BusinessEstablishedDate"
+                                               class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+                                </BaseFormInput>
+
+                                <BaseTextField Id="phoneNumber" Label="No Telepon" @bind-Value="_model.PhoneNumber" />
+                                <BaseTextField Id="mobileNumber1" Label="Handphone 1" @bind-Value="_model.MobileNumber1" />
+                                <BaseTextField Id="mobileNumber2" Label="Handphone 2" @bind-Value="_model.MobileNumber2" />
+                                <BaseTextField Id="email" Label="Email" @bind-Value="_model.Email" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <BaseTextField Id="debtorName" Label="Nama Lengkap" Class="md:col-span-2" @bind-Value="_model.DebtorName" />
+                                <BaseTextField Id="identityNumber" Label="No KTP" @bind-Value="_model.IdentityNumber" />
+                                <BaseTextField Id="birthPlace" Label="Tempat Lahir" @bind-Value="_model.BirthPlace" />
+
+                                <BaseFormInput Id="dateOfBirth" Label="Tanggal Lahir">
+                                    <InputDate TValue="DateTime?"
+                                               id="dateOfBirth"
+                                               @bind-Value="_model.DateOfBirth"
+                                               class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+                                </BaseFormInput>
+
+                                <BaseSelectField TValue="string" Id="gender" Label="Jenis Kelamin" @bind-Value="_model.Gender">
+                                    <option value="">Pilih Jenis Kelamin</option>
+                                    @foreach (var gender in _genderOptions)
+                                    {
+                                        <option value="@gender">@gender</option>
+                                    }
+                                </BaseSelectField>
+
+                                <BaseSelectField TValue="string" Id="maritalStatus" Label="Status Pernikahan" @bind-Value="_model.MaritalStatus">
+                                    <option value="">Pilih Status</option>
+                                    @foreach (var maritalStatus in _maritalStatusOptions)
+                                    {
+                                        <option value="@maritalStatus">@maritalStatus</option>
+                                    }
+                                </BaseSelectField>
+
+                                <BaseTextField Id="phoneNumber" Label="No Telepon" @bind-Value="_model.PhoneNumber" />
+                                <BaseTextField Id="mobileNumber1" Label="Handphone 1" @bind-Value="_model.MobileNumber1" />
+                                <BaseTextField Id="mobileNumber2" Label="Handphone 2" @bind-Value="_model.MobileNumber2" />
+                                <BaseTextField Id="email" Label="Email" @bind-Value="_model.Email" />
+                            </div>
+                        }
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Informasi Tambahan</p> *@
+
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <BaseSearchListModalField Id="collateralSubtype"
+                                                      Label="Jenis Jaminan"
+                                                      Class="md:col-span-2"
+                                                      Value="@_model.CollateralSubtype"
+                                                      ValueChanged="OnCollateralSubtypeChanged"
+                                                      Options="@_collateralSubtypeOptions"
+                                                      Placeholder="Pilih Jenis Jaminan"
+                                                      ModalTitle="Pilih Jenis Jaminan"
+                                                      ModalSubtitle="Pilih jenis jaminan/agunan sesuai kategori aset." />
+
+                            <BaseTextField Id="address" Label="Alamat" Class="md:col-span-2" @bind-Value="_model.AddressLine1" />
+
+                            <BaseTextField Id="rt" Label="RT" @bind-Value="_model.Rt" />
+                            <BaseTextField Id="rw" Label="RW" @bind-Value="_model.Rw" />
+                            <BaseTextField Id="postalCode" Label="Kode Pos" @bind-Value="_model.PostalCode" />
+                            <BaseTextField Id="subdistrict" Label="Kelurahan" @bind-Value="_model.Subdistrict" />
+                            <BaseTextField Id="district" Label="Kecamatan" @bind-Value="_model.District" />
+                            <BaseTextField Id="city" Label="Kota/Kabupaten" @bind-Value="_model.City" />
+
+                            <BaseSearchListModalField Id="province"
+                                                      Label="Provinsi"
+                                                      Class="md:col-span-2"
+                                                      Value="@_model.Province"
+                                                      ValueChanged="OnProvinceChanged"
+                                                      Options="@_provinceOptions"
+                                                      Placeholder="Pilih Provinsi"
+                                                      ModalTitle="Pilih Provinsi"
+                                                      ModalSubtitle="Cari provinsi dari daftar wilayah Indonesia." />
+
+                            <BaseSearchListModalField Id="country"
+                                                      Label="Negara"
+                                                      Class="md:col-span-2"
+                                                      Value="@_model.Country"
+                                                      ValueChanged="OnCountryChanged"
+                                                      Options="@_countryOptions"
+                                                      Placeholder="Pilih Negara"
+                                                      ModalTitle="Pilih Negara"
+                                                      ModalSubtitle="Cari negara dari daftar yang tersedia." />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="border-b border-slate-200 pb-3">
+                    <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Data Agunan Appraisal</p>
+                    <p class="mt-1 mb-0 text-sm text-slate-500">Lengkapi data agunan untuk proses appraisal.</p>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Spesifikasi Agunan</p> *@
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <BaseTextField Id="location" Label="Lokasi Agunan" Class="md:col-span-2" @bind-Value="_model.Location" />
+                            <BaseTextField Id="specification" Label="Luas / Spesifikasi" Class="md:col-span-2" @bind-Value="_model.Specification" />
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Parameter Penilaian</p> *@
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            @* <BaseNumberField TValue="decimal" Id="marketValue" Label="Nilai Pasar" @bind-Value="_model.MarketValue" /> *@
+                            @* <BaseNumberField TValue="decimal" Id="liquidationValue" Label="Nilai Likuidasi" @bind-Value="_model.LiquidationValue" /> *@
+                            <BaseTextAreaField Id="notes" Label="Catatan" Class="md:col-span-2" InputClass="min-h-28" @bind-Value="_model.Notes" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                    <div>
+                        <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Chat AI</p>
+                        <h3 class="mt-1 mb-0 text-base font-bold text-slate-700">Data pembanding untuk pendekatan pasar</h3>
+                    </div>
+                    @* <BaseButton Variant="secondary" Size="sm" OnClick="AddComparableAsync">Tambah Pembanding</BaseButton> *@
+                </div>
+
+                @* @for (var i = 0; i < _comparables.Count; i++)
+                {
+                    var rowNumber = i + 1;
+                    var comparable = _comparables[i];
+
+                    <div class="mb-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div class="mb-2 flex items-center justify-between">
+                            <p class="mb-0 text-sm font-semibold text-slate-700">Pembanding @rowNumber</p>
+                            @if (_comparables.Count > 1)
+                            {
+                                <BaseButton Variant="danger" Size="sm" OnClick="@(e => RemoveComparableAsync(e, i))">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M4.5 6h11"></path>
+                                            <path d="M7.5 6v9"></path>
+                                            <path d="M12.5 6v9"></path>
+                                            <path d="M6 6l.5-2h7L14 6"></path>
+                                            <path d="M6.5 6v10h7V6"></path>
+                                        </svg>
+                                        <span>Hapus</span>
+                                    </span>
+                                </BaseButton>
+                            }
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
+                            <BaseTextField Id="@($"comp-source-{i}")" Label="Sumber Data" Class="xl:col-span-3" @bind-Value="comparable.Source" />
+                            <BaseTextField Id="@($"comp-location-{i}")" Label="Lokasi Pembanding" Class="xl:col-span-3" @bind-Value="comparable.Location" />
+                            <BaseTextField Id="@($"comp-spec-{i}")" Label="Spesifikasi" Class="xl:col-span-3" @bind-Value="comparable.Specification" />
+
+                            <BaseNumberField TValue="decimal?" Id="@($"comp-land-{i}")" Label="Luas Tanah (m2)" Class="xl:col-span-3" @bind-Value="comparable.LandArea" />
+                            <BaseNumberField TValue="decimal?" Id="@($"comp-building-{i}")" Label="Luas Bangunan (m2)" Class="xl:col-span-3" @bind-Value="comparable.BuildingArea" />
+                            <BaseNumberField TValue="decimal?" Id="@($"comp-price-{i}")" Label="Harga Penawaran" Class="xl:col-span-3" @bind-Value="comparable.OfferPrice" />
+
+                            <BaseNumberField TValue="decimal?" Id="@($"comp-adjustment-{i}")" Label="Penyesuaian (%)" Class="xl:col-span-3" @bind-Value="comparable.AdjustmentPercent" />
+                            <BaseNumberField TValue="decimal?" Id="@($"comp-indication-{i}")" Label="Nilai Indikasi" Class="xl:col-span-3" @bind-Value="comparable.IndicatedValue" />
+                            <BaseTextField Id="@($"comp-notes-{i}")" Label="Keterangan" Class="xl:col-span-6" @bind-Value="comparable.Remarks" />
+                        </div>
+                    </div>
+                } *@
+            </section>
+        </div>
+
+        <div class="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+            <BaseButton Variant="secondary" Size="lg" OnClick="BackAsync">
+                <span class="inline-flex items-center gap-2">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M8 5l-5 5 5 5"></path>
+                        <path d="M4 10h13"></path>
+                    </svg>
+                    <span>Back</span>
+                </span>
+            </BaseButton>
+            <BaseButton ButtonType="submit" Variant="brand" Size="lg">
+                <span class="inline-flex items-center gap-2">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M4 10.5V5.5A1.5 1.5 0 0 1 5.5 4h7L16 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 15.5z"></path>
+                        <path d="M7 4.5v4h5v-4"></path>
+                        <path d="M7.5 13h5"></path>
+                    </svg>
+                    <span>Save</span>
+                </span>
+            </BaseButton>
+        </div>
+    </EditForm>
+</BaseCard>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+    private const string ComparableMarker = "[[COMPARABLES]]";
+
+    private AppraisalUpsertDto _model = new();
+    private bool _isEdit;
+    private bool _canCreateNew = true;
+    private List<ComparableInput> _comparables = [new()];
+    private static readonly string[] _genderOptions = ["Laki-laki", "Perempuan"];
+    private static readonly string[] _maritalStatusOptions = ["Belum Menikah", "Menikah", "Cerai Hidup", "Cerai Mati"];
+    private static readonly string[] _legalEntityOptions = ["PT", "CV", "Firma", "Koperasi", "Yayasan", "Lainnya"];
+    private static readonly string[] _provinceOptions =
+    [
+        "Aceh", "Bali", "Banten", "Bengkulu", "Daerah Istimewa Yogyakarta", "DKI Jakarta", "Gorontalo", "Jambi",
+        "Jawa Barat", "Jawa Tengah", "Jawa Timur", "Kalimantan Barat", "Kalimantan Selatan", "Kalimantan Tengah",
+        "Kalimantan Timur", "Kalimantan Utara", "Kepulauan Bangka Belitung", "Kepulauan Riau", "Lampung", "Maluku",
+        "Maluku Utara", "Nusa Tenggara Barat", "Nusa Tenggara Timur", "Papua", "Papua Barat", "Papua Barat Daya",
+        "Papua Pegunungan", "Papua Selatan", "Papua Tengah", "Riau", "Sulawesi Barat", "Sulawesi Selatan",
+        "Sulawesi Tengah", "Sulawesi Tenggara", "Sulawesi Utara", "Sumatera Barat", "Sumatera Selatan", "Sumatera Utara"
+    ];
+    private static readonly string[] _countryOptions =
+    [
+        "Indonesia", "Malaysia", "Singapura", "Thailand", "Vietnam", "Filipina", "Brunei Darussalam", "Timor Leste",
+        "Tiongkok", "Jepang", "Korea Selatan", "India", "Australia", "Selandia Baru", "Amerika Serikat", "Kanada",
+        "Inggris", "Belanda", "Jerman", "Prancis", "Italia", "Spanyol", "Arab Saudi", "Uni Emirat Arab"
+    ];
+    private static readonly string[] _collateralSubtypeOptions =
+    [
+        "Rumah", "Tanah", "Ruko", "Apartment", "Gudang", "Villa", "SOHO", "Pabrik",
+        "Perkantoran", "Hotel", "Rumah Kos", "Stand", "Toko", "Gedung", "Condotel", "Lain-lain"
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isEdit = Id.HasValue;
+
+        var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+        var user = authState.User;
+        var isSupervisor = user.IsInRole("Supervisor") || user.IsInRole("Checker");
+        var isAdmin = user.IsInRole("Admin");
+        var isAppraiser = user.IsInRole("Appraiser");
+
+        _canCreateNew = isAdmin || isAppraiser;
+
+        if (!_isEdit)
+        {
+            if (!_canCreateNew)
+            {
+                NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.Account.AccessDenied));
+                return;
+            }
+
+            _model = CreateDefaultModel();
+            _comparables = [new()];
+            return;
+        }
+
+        var existing = await AppraisalService.GetByIdAsync(Id!.Value);
+        if (existing is null)
+        {
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
+            return;
+        }
+
+        var canEditExisting = isAdmin
+            || isSupervisor
+            || (isAppraiser && existing.Status != AppraisalStatus.Submitted);
+
+        if (!canEditExisting)
+        {
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id.Value)));
+            return;
+        }
+
+        var (plainNotes, comparables) = ParseComparableSection(existing.Notes);
+
+        _model = new AppraisalUpsertDto
+        {
+            Id = existing.Id,
+            ApplicationNumber = existing.ApplicationNumber,
+            Segment = existing.Segment,
+            MakerId = existing.MakerId,
+            BranchCode = existing.BranchCode,
+            ApplicationDateUtc = existing.ApplicationDateUtc,
+            ApplicantType = existing.ApplicantType,
+            DeedNumber = existing.DeedNumber,
+            DateOfBirth = existing.DateOfBirth,
+            BusinessEstablishedDate = existing.BusinessEstablishedDate,
+            LegalEntity = existing.LegalEntity,
+            BirthPlace = existing.BirthPlace,
+            Gender = existing.Gender,
+            MaritalStatus = existing.MaritalStatus,
+            AddressLine1 = existing.AddressLine1,
+            AddressLine2 = existing.AddressLine2,
+            AddressLine3 = existing.AddressLine3,
+            Rt = existing.Rt,
+            Rw = existing.Rw,
+            PostalCode = existing.PostalCode,
+            Subdistrict = existing.Subdistrict,
+            District = existing.District,
+            City = existing.City,
+            Province = existing.Province,
+            Country = existing.Country,
+            PhoneNumber = existing.PhoneNumber,
+            MobileNumber1 = existing.MobileNumber1,
+            MobileNumber2 = existing.MobileNumber2,
+            Email = existing.Email,
+            DebtorName = existing.DebtorName,
+            IdentityNumber = existing.IdentityNumber,
+            CollateralType = existing.CollateralType,
+            CollateralSubtype = existing.CollateralSubtype,
+            Location = existing.Location,
+            Specification = existing.Specification,
+            MarketValue = existing.MarketValue,
+            LiquidationValue = existing.LiquidationValue,
+            Notes = plainNotes
+        };
+
+        _comparables = comparables.Count > 0 ? comparables : [new()];
+
+        if (string.IsNullOrWhiteSpace(_model.ApplicationNumber))
+        {
+            _model.ApplicationNumber = GenerateApplicationNumber(_model.Segment);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _model.Notes = BuildNotesWithComparableSection(_model.Notes, _comparables);
+
+        if (_isEdit)
+        {
+            await AppraisalService.UpdateAsync(_model);
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id!.Value)));
+            return;
+        }
+        else
+        {
+            if (!_canCreateNew)
+            {
+                NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.Account.AccessDenied));
+                return;
+            }
+
+            var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+            var username = authState.User.Identity?.Name ?? "system";
+            var newId = await AppraisalService.CreateAsync(_model, username);
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(newId)));
+            return;
+        }
+    }
+
+    private void Back()
+    {
+        if (_isEdit && Id.HasValue)
+        {
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(Id.Value)));
+            return;
+        }
+
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
+    }
+
+    private Task AddComparableAsync(MouseEventArgs _)
+    {
+        _comparables.Add(new ComparableInput());
+        return Task.CompletedTask;
+    }
+
+    private Task RemoveComparableAsync(MouseEventArgs _, int index)
+    {
+        if (index < 0 || index >= _comparables.Count)
+        {
+            return Task.CompletedTask;
+        }
+
+        _comparables.RemoveAt(index);
+
+        if (_comparables.Count == 0)
+        {
+            _comparables.Add(new ComparableInput());
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string BuildNotesWithComparableSection(string notes, IReadOnlyList<ComparableInput> comparables)
+    {
+        var cleanNotes = (notes ?? string.Empty).Trim();
+
+        var validComparables = comparables
+            .Where(IsComparableFilled)
+            .Select(x => new ComparableInput
+            {
+                Source = x.Source.Trim(),
+                Location = x.Location.Trim(),
+                Specification = x.Specification.Trim(),
+                LandArea = x.LandArea,
+                BuildingArea = x.BuildingArea,
+                OfferPrice = x.OfferPrice,
+                AdjustmentPercent = x.AdjustmentPercent,
+                IndicatedValue = x.IndicatedValue,
+                Remarks = x.Remarks.Trim()
+            })
+            .ToList();
+
+        if (validComparables.Count == 0)
+        {
+            return cleanNotes;
+        }
+
+        var payload = System.Text.Json.JsonSerializer.Serialize(validComparables);
+        return string.IsNullOrWhiteSpace(cleanNotes)
+            ? $"{ComparableMarker}{payload}"
+            : $"{cleanNotes}\n\n{ComparableMarker}{payload}";
+    }
+
+    private static (string Notes, List<ComparableInput> Comparables) ParseComparableSection(string? rawNotes)
+    {
+        var value = rawNotes ?? string.Empty;
+        var markerIndex = value.IndexOf(ComparableMarker, StringComparison.Ordinal);
+
+        if (markerIndex < 0)
+        {
+            return (value, []);
+        }
+
+        var plainNotes = value[..markerIndex].TrimEnd();
+        var json = value[(markerIndex + ComparableMarker.Length)..].Trim();
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (plainNotes, []);
+        }
+
+        try
+        {
+            var comparables = System.Text.Json.JsonSerializer.Deserialize<List<ComparableInput>>(json) ?? [];
+            return (plainNotes, comparables);
+        }
+        catch
+        {
+            return (value, []);
+        }
+    }
+
+    private static bool IsComparableFilled(ComparableInput input)
+    {
+        return !string.IsNullOrWhiteSpace(input.Source)
+            || !string.IsNullOrWhiteSpace(input.Location)
+            || !string.IsNullOrWhiteSpace(input.Specification)
+            || input.LandArea.HasValue
+            || input.BuildingArea.HasValue
+            || input.OfferPrice.HasValue
+            || input.AdjustmentPercent.HasValue
+            || input.IndicatedValue.HasValue
+            || !string.IsNullOrWhiteSpace(input.Remarks);
+    }
+
+    private sealed class ComparableInput
+    {
+        public string Source { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Specification { get; set; } = string.Empty;
+        public decimal? LandArea { get; set; }
+        public decimal? BuildingArea { get; set; }
+        public decimal? OfferPrice { get; set; }
+        public decimal? AdjustmentPercent { get; set; }
+        public decimal? IndicatedValue { get; set; }
+        public string Remarks { get; set; } = string.Empty;
+    }
+
+    private Task BackAsync(MouseEventArgs _)
+    {
+        Back();
+        return Task.CompletedTask;
+    }
+
+    private Task OnProvinceChanged(string? value)
+    {
+        _model.Province = value ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnCountryChanged(string? value)
+    {
+        _model.Country = value ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnCollateralSubtypeChanged(string? value)
+    {
+        _model.CollateralSubtype = value ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private static AppraisalUpsertDto CreateDefaultModel()
+    {
+        var segment = CustomerSegment.Consumer;
+
+        return new AppraisalUpsertDto
+        {
+            Segment = segment,
+            ApplicantType = ApplicantType.Individual,
+            ApplicationDateUtc = DateTime.Today,
+            ApplicationNumber = GenerateApplicationNumber(segment)
+        };
+    }
+
+    private static string GenerateApplicationNumber(CustomerSegment segment)
+    {
+        var prefix = segment switch
+        {
+            CustomerSegment.Consumer => "CON",
+            CustomerSegment.Commercial => "COM",
+            CustomerSegment.SME => "SME",
+            CustomerSegment.Corporate => "COR",
+            _ => "APP"
+        };
+
+        return $"{prefix}.{DateTime.Now:yyyyMMdd}.{Random.Shared.Next(1, 999):000}";
+    }
+}

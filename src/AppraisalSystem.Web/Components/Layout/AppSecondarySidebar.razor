@@ -1,0 +1,255 @@
+@implements IDisposable
+
+<aside class="@SidebarClass" style="@SidebarStyle">
+    <div class="border-b pb-4" style="border-color: color-mix(in srgb, var(--theme-panel-border) 86%, #ffffff);">
+        @if (!string.IsNullOrWhiteSpace(SectionLabel))
+        {
+            <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em]" style="color: var(--theme-text-muted);">@SectionLabel</p>
+        }
+        <h2 class="mt-1 mb-0 text-base font-bold" style="color: var(--theme-text-strong);">@Title</h2>
+    </div>
+
+    <nav class="mt-4 min-h-0 flex-1 overflow-y-auto pr-0.5 sidebar-scroll-smooth">
+        <ul class="space-y-1.5">
+            @for (var index = 0; index < Items.Count; index++)
+            {
+                var item = Items[index];
+                var key = index.ToString();
+
+                <SecondarySidebarTreeNode Item="item"
+                                          Depth="0"
+                                          NodeKey="key"
+                                          IsExpandedResolver="IsNodeExpanded"
+                                          OnToggle="ToggleBranchAsync"
+                                          OnOpen="OpenBranchAsync"
+                                          OnLeafClick="HandleLeafClickAsync" />
+            }
+        </ul>
+    </nav>
+</aside>
+
+@code {
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool OffsetForPrimaryCompact { get; set; }
+    [Parameter] public string SectionLabel { get; set; } = "#";
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public IReadOnlyList<SecondarySidebarItem> Items { get; set; } = [];
+
+    private HashSet<string> _expandedKeys = [];
+    private string? _pendingOpenKey;
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        SyncExpandedKeys();
+    }
+
+    private void SyncExpandedKeys()
+    {
+        var availableKeys = EnumerateKeys(Items).ToHashSet(StringComparer.Ordinal);
+        _expandedKeys.RemoveWhere(x => !availableKeys.Contains(x));
+
+        var activeBranchKeys = ResolveActiveBranchKeys(Items).ToHashSet(StringComparer.Ordinal);
+        foreach (var key in activeBranchKeys)
+        {
+            _expandedKeys.Add(key);
+        }
+
+        for (var index = 0; index < Items.Count; index++)
+        {
+            var item = Items[index];
+            if (!item.HasChildren)
+            {
+                continue;
+            }
+
+            if (IsNodeLinkActive(item))
+            {
+                _expandedKeys.Add(index.ToString());
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_pendingOpenKey) && availableKeys.Contains(_pendingOpenKey))
+        {
+            _expandedKeys.Add(_pendingOpenKey);
+        }
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        SyncExpandedKeys();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+
+    private bool IsNodeExpanded(string key) => _expandedKeys.Contains(key);
+
+    private async Task ToggleBranchAsync(string key)
+    {
+        if (!_expandedKeys.Add(key))
+        {
+            _expandedKeys.Remove(key);
+        }
+
+        _pendingOpenKey = null;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenBranchAsync(string key)
+    {
+        _expandedKeys.Add(key);
+        _pendingOpenKey = key;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLeafClickAsync(string key)
+    {
+        // A top-level leaf navigation (Memo/History) should close any expanded sibling branches.
+        if (key.Contains('/', StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _expandedKeys.Clear();
+        _pendingOpenKey = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private IEnumerable<string> EnumerateKeys(IReadOnlyList<SecondarySidebarItem> nodes, string parentKey = "")
+    {
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            var key = string.IsNullOrWhiteSpace(parentKey) ? index.ToString() : $"{parentKey}/{index}";
+            yield return key;
+
+            foreach (var childKey in EnumerateKeys(nodes[index].Children, key))
+            {
+                yield return childKey;
+            }
+        }
+    }
+
+    private IEnumerable<string> ResolveActiveBranchKeys(IReadOnlyList<SecondarySidebarItem> nodes, string parentKey = "")
+    {
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            var key = string.IsNullOrWhiteSpace(parentKey) ? index.ToString() : $"{parentKey}/{index}";
+            if (CollectActiveBranchKeys(nodes[index], key, out var keys))
+            {
+                foreach (var activeKey in keys)
+                {
+                    yield return activeKey;
+                }
+            }
+        }
+    }
+
+    private bool CollectActiveBranchKeys(SecondarySidebarItem node, string key, out List<string> keys)
+    {
+        keys = [];
+        var hasActiveChild = false;
+
+        for (var index = 0; index < node.Children.Count; index++)
+        {
+            var child = node.Children[index];
+            var childKey = $"{key}/{index}";
+
+            if (!CollectActiveBranchKeys(child, childKey, out var childKeys))
+            {
+                continue;
+            }
+
+            hasActiveChild = true;
+            keys.AddRange(childKeys);
+        }
+
+        var selfActive = IsNodeLinkActive(node);
+        var isActiveBranch = selfActive || hasActiveChild;
+
+        if (node.HasChildren && isActiveBranch)
+        {
+            keys.Add(key);
+        }
+
+        return isActiveBranch;
+    }
+
+    private bool IsNodeLinkActive(SecondarySidebarItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Href))
+        {
+            return false;
+        }
+
+        var currentPath = NormalizePath(NavigationManager.Uri);
+        var itemPath = NormalizePath(item.Href);
+
+        if (item.Match == NavLinkMatch.All)
+        {
+            return string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(itemPath)
+            && currentPath.StartsWith($"{itemPath}/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string NormalizePath(string href)
+    {
+        var appPath = NavigationManager.ToAppPath(href);
+        var absoluteUri = NavigationManager.ToAbsoluteUri(appPath);
+
+        var absolutePath = absoluteUri.AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(absolutePath))
+        {
+            return string.Empty;
+        }
+
+        var basePath = NavigationManager.ToAbsoluteUri(NavigationManager.BaseUri).AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(basePath))
+        {
+            return absolutePath;
+        }
+
+        if (string.Equals(absolutePath, basePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var prefixedBase = $"{basePath}/";
+        return absolutePath.StartsWith(prefixedBase, StringComparison.OrdinalIgnoreCase)
+            ? absolutePath[prefixedBase.Length..]
+            : absolutePath;
+    }
+
+    private string SidebarClass => "fixed bottom-3 top-3 z-40 flex w-[17.5rem] flex-col overflow-hidden rounded-[1.75rem] border px-4 py-5 shadow-[0_24px_65px_rgba(15,23,42,0.12)] transition-[transform,opacity] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform";
+
+    private string SidebarStyle
+    {
+        get
+        {
+            var dockingOffset = OffsetForPrimaryCompact ? "5.5rem" : "0";
+            var transform = Hidden
+                ? $"transform: translate3d(calc(-100% - 1rem + {dockingOffset}), 0, 0);"
+                : $"transform: translate3d({dockingOffset}, 0, 0);";
+            var opacity = Hidden ? "opacity: 0;" : "opacity: 1;";
+            var pointerEvents = Hidden ? "pointer-events: none;" : "pointer-events: auto;";
+            return $"left: 0.75rem; border-color: var(--theme-panel-border-strong); background: var(--theme-panel-bg); {transform} {opacity} {pointerEvents}";
+        }
+    }
+}

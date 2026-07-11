@@ -1,0 +1,391 @@
+@page "/pencarian-data/memo"
+@attribute [Authorize]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+
+<PageTitle>Pencarian Data - Memo</PageTitle>
+
+<BaseCard Title="Memo" Subtitle="Pesan dua arah antara maker/appraiser dan checker/supervisor pada pengajuan appraisal." Class="mx-auto w-full max-w-6xl">
+    <LoadingSpinner Visible="_isLoading" Text="Memuat data memo..." />
+
+    @if (!string.IsNullOrWhiteSpace(_feedbackMessage))
+    {
+        <BaseAlert Variant="@_feedbackVariant" Class="mb-3">@_feedbackMessage</BaseAlert>
+    }
+
+    <div class="space-y-5">
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div class="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_36%),linear-gradient(180deg,#f8fbff_0%,#f1f6fd_100%)] p-5">
+                <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Workspace</p>
+                <h3 class="mt-0 mb-2 text-xl font-extrabold text-slate-800">Monitor percakapan maker dan checker dalam satu tampilan</h3>
+                <p class="mb-0 max-w-2xl text-sm leading-6 text-slate-600">Memo dari maker/appraiser maupun checker/supervisor, termasuk catatan approve/reject, akan tampil dalam satu daftar terpusat.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Total Memo</p>
+                    <p class="mb-0 text-2xl font-extrabold text-slate-800">@_memoRows.Count</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">No. Aplikasi</p>
+                    <p class="mb-0 text-base font-bold text-slate-700">@BuildSelectedAppNo()</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Status Pengajuan</p>
+                    <p class="mb-0 text-base font-bold text-slate-700">@BuildSelectedStatusLabel()</p>
+                </div>
+            </div>
+        </div>
+
+        <BaseSectionPanel Eyebrow="Memo List" Title="Daftar Memo" Subtitle="List memo dibuat dari histori catatan memo, approve, dan reject.">
+            <RightContent>
+                <div class="flex flex-wrap gap-2">
+                    <BaseButton Variant="secondary" Size="sm" OnClick="RefreshListAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M15.5 8A5.5 5.5 0 1 0 17 12"></path>
+                                <path d="M16 4.5v4h-4"></path>
+                            </svg>
+                            <span>Refresh</span>
+                        </span>
+                    </BaseButton>
+                    <BaseButton Variant="brand" Size="sm" OnClick="ToggleAddFormAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M10 4v12"></path>
+                                <path d="M4 10h12"></path>
+                            </svg>
+                            <span>Add New</span>
+                        </span>
+                    </BaseButton>
+                </div>
+            </RightContent>
+            <ChildContent>
+                @if (_showAddForm)
+                {
+                    <div class="mb-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div class="mb-3 rounded-xl border border-slate-200 bg-white/75 p-3 text-sm text-slate-600">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Data Pengajuan Terpilih</p>
+                            <p class="mb-1"><span class="font-semibold text-slate-700">No. Aplikasi:</span> @BuildSelectedAppNo()</p>
+                            <p class="mb-1"><span class="font-semibold text-slate-700">Debitur:</span> @BuildSelectedDebtorName()</p>
+                            <p class="mb-0"><span class="font-semibold text-slate-700">Status:</span> @BuildSelectedStatusLabel()</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <BaseTextAreaField Id="memoNote" Label="Isi Memo" @bind-Value="_newMemoContent" UpdateOnInput="true" InputClass="min-h-24" Placeholder="Tulis memo untuk pengajuan terpilih..." />
+
+                            <div class="mb-1 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                <BaseButton Variant="secondary-muted" Size="sm" Class="w-full sm:w-auto" OnClick="CancelAddAsync">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M5 5l10 10"></path>
+                                            <path d="M15 5L5 15"></path>
+                                        </svg>
+                                        <span>Batal</span>
+                                    </span>
+                                </BaseButton>
+                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="SaveNewMemoAsync" Disabled="@(!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newMemoContent) || _isSaving)">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M4.5 10.5l3.2 3.2 7.8-7.8"></path>
+                                        </svg>
+                                        <span>Save</span>
+                                    </span>
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <BaseTable TItem="MemoRow" Items="_memoRows" ColSpan="4" EmptyText="Belum ada memo yang tercatat.">
+                    <HeaderTemplate>
+                        <BaseTableHeaderCell Class="w-44">Tanggal Memo</BaseTableHeaderCell>
+                        <BaseTableHeaderCell Class="w-44">No. Aplikasi</BaseTableHeaderCell>
+                        <BaseTableHeaderCell>Isi Memo</BaseTableHeaderCell>
+                        <BaseTableHeaderCell Class="w-36">Dibuat Oleh</BaseTableHeaderCell>
+                    </HeaderTemplate>
+                    <RowTemplate Context="row">
+                        <BaseTableCell Tone="soft">@row.TimestampUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</BaseTableCell>
+                        <BaseTableCell Tone="strong">@Display(row.ApplicationNumber)</BaseTableCell>
+                        <BaseTableCell>
+                            <div class="space-y-1">
+                                <p class="mb-0 text-sm text-slate-700">@row.Note</p>
+                                <span class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">@row.Action</span>
+                            </div>
+                        </BaseTableCell>
+                        <BaseTableCell Tone="default">@Display(row.Actor)</BaseTableCell>
+                    </RowTemplate>
+                </BaseTable>
+            </ChildContent>
+        </BaseSectionPanel>
+    </div>
+</BaseCard>
+
+@code {
+    [SupplyParameterFromQuery(Name = "selectedId")] public int? SelectedId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private int? _selectedId;
+    private AppraisalDetailDto? _selectedDetail;
+    private List<MemoRow> _memoRows = [];
+    private bool _isLoading;
+    private bool _isSaving;
+    private bool _showAddForm;
+    private string _newMemoContent = string.Empty;
+    private string _feedbackMessage = string.Empty;
+    private string _feedbackVariant = "info";
+
+    protected override Task OnInitializedAsync() => RefreshListCoreAsync();
+
+    private Task RefreshListAsync(MouseEventArgs _) => RefreshListCoreAsync();
+
+    private Task ToggleAddFormAsync(MouseEventArgs _)
+    {
+        _showAddForm = !_showAddForm;
+        if (!_showAddForm)
+        {
+            _newMemoContent = string.Empty;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task CancelAddAsync(MouseEventArgs _)
+    {
+        _showAddForm = false;
+        _newMemoContent = string.Empty;
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedId != _selectedId)
+        {
+            _selectedId = SelectedId;
+            await RefreshListCoreAsync();
+        }
+    }
+
+    private async Task RefreshListCoreAsync()
+    {
+        _isLoading = true;
+        _feedbackMessage = string.Empty;
+
+        try
+        {
+            if (!_selectedId.HasValue)
+            {
+                _selectedDetail = null;
+                _memoRows = [];
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Pilih aplikasi terlebih dahulu dari halaman utama agar memo bisa ditampilkan.";
+                return;
+            }
+
+            _selectedDetail = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            if (_selectedDetail is null)
+            {
+                _memoRows = [];
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Data appraisal tidak ditemukan.";
+                return;
+            }
+
+            _memoRows = ParseWorkflowHistory(_selectedDetail.WorkflowHistoryJson)
+                .Where(IsMemoEntry)
+                .Select(x => new MemoRow
+                {
+                    AppraisalId = _selectedDetail.Id,
+                    ApplicationNumber = _selectedDetail.ApplicationNumber,
+                    TimestampUtc = x.TimestampUtc,
+                    Actor = x.Actor,
+                    Action = x.Action,
+                    Note = x.Note
+                })
+                .ToList();
+
+            _memoRows = _memoRows
+                .OrderByDescending(x => x.TimestampUtc)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _feedbackVariant = "danger";
+            _feedbackMessage = $"Gagal memuat daftar memo: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveNewMemoAsync(MouseEventArgs _)
+    {
+        if (!_selectedId.HasValue || string.IsNullOrWhiteSpace(_newMemoContent))
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _feedbackMessage = string.Empty;
+
+        try
+        {
+            var latest = await AppraisalService.GetByIdAsync(_selectedId.Value);
+            if (latest is null)
+            {
+                _feedbackVariant = "warning";
+                _feedbackMessage = "Data appraisal tidak ditemukan saat proses simpan memo.";
+                return;
+            }
+
+            var history = ParseWorkflowHistory(latest.WorkflowHistoryJson);
+            history.Add(new WorkflowEntry
+            {
+                TimestampUtc = DateTime.UtcNow,
+                Actor = await ResolveActorNameAsync(),
+                Action = "Memo Updated",
+                Note = _newMemoContent.Trim()
+            });
+
+            var payload = MapToUpsert(latest);
+            payload.InternalMemo = _newMemoContent.Trim();
+            payload.WorkflowHistoryJson = SerializeWorkflowHistory(history);
+
+            await AppraisalService.UpdateAsync(payload);
+
+            _feedbackVariant = "success";
+            _feedbackMessage = "Memo berhasil ditambahkan.";
+            _showAddForm = false;
+            _newMemoContent = string.Empty;
+
+            await RefreshListCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            _feedbackVariant = "danger";
+            _feedbackMessage = $"Gagal menyimpan memo: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task<string> ResolveActorNameAsync()
+    {
+        var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        return string.IsNullOrWhiteSpace(authState.User.Identity?.Name)
+            ? "System User"
+            : authState.User.Identity!.Name!;
+    }
+
+    private string BuildSelectedAppNo()
+        => string.IsNullOrWhiteSpace(_selectedDetail?.ApplicationNumber)
+            ? (_selectedId.HasValue ? $"APP-{_selectedId.Value:0000}" : "-")
+            : _selectedDetail.ApplicationNumber;
+
+    private string BuildSelectedDebtorName()
+        => Display(_selectedDetail?.DebtorName);
+
+    private string BuildSelectedStatusLabel()
+        => _selectedDetail is null ? "-" : _selectedDetail.Status.ToString();
+
+    private static bool IsMemoEntry(WorkflowEntry entry)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Note))
+        {
+            return false;
+        }
+
+        var action = (entry.Action ?? string.Empty).Trim().ToLowerInvariant();
+        return action is "memo updated" or "approved" or "rejected" or "memo added";
+    }
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static AppraisalUpsertDto MapToUpsert(AppraisalDetailDto detail)
+    {
+        return new AppraisalUpsertDto
+        {
+            Id = detail.Id,
+            ApplicationNumber = detail.ApplicationNumber,
+            Segment = detail.Segment,
+            MakerId = detail.MakerId,
+            BranchCode = detail.BranchCode,
+            ApplicationDateUtc = detail.ApplicationDateUtc,
+            ApplicantType = detail.ApplicantType,
+            DeedNumber = detail.DeedNumber,
+            DateOfBirth = detail.DateOfBirth,
+            BusinessEstablishedDate = detail.BusinessEstablishedDate,
+            LegalEntity = detail.LegalEntity,
+            BirthPlace = detail.BirthPlace,
+            Gender = detail.Gender,
+            MaritalStatus = detail.MaritalStatus,
+            AddressLine1 = detail.AddressLine1,
+            AddressLine2 = detail.AddressLine2,
+            AddressLine3 = detail.AddressLine3,
+            Rt = detail.Rt,
+            Rw = detail.Rw,
+            PostalCode = detail.PostalCode,
+            Subdistrict = detail.Subdistrict,
+            District = detail.District,
+            City = detail.City,
+            Province = detail.Province,
+            Country = detail.Country,
+            PhoneNumber = detail.PhoneNumber,
+            MobileNumber1 = detail.MobileNumber1,
+            MobileNumber2 = detail.MobileNumber2,
+            Email = detail.Email,
+            DebtorName = detail.DebtorName,
+            IdentityNumber = detail.IdentityNumber,
+            CollateralType = detail.CollateralType,
+            CollateralSubtype = detail.CollateralSubtype,
+            Location = detail.Location,
+            Specification = detail.Specification,
+            MarketValue = detail.MarketValue,
+            LiquidationValue = detail.LiquidationValue,
+            Notes = detail.Notes,
+            InternalMemo = detail.InternalMemo,
+            WorkflowHistoryJson = detail.WorkflowHistoryJson
+        };
+    }
+
+    private static List<WorkflowEntry> ParseWorkflowHistory(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return [];
+        }
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<WorkflowEntry>>(raw) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeWorkflowHistory(IReadOnlyList<WorkflowEntry> entries)
+        => System.Text.Json.JsonSerializer.Serialize(entries);
+
+    private sealed class WorkflowEntry
+    {
+        public DateTime TimestampUtc { get; set; }
+        public string Actor { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+    }
+
+    private sealed class MemoRow
+    {
+        public int AppraisalId { get; set; }
+        public string ApplicationNumber { get; set; } = string.Empty;
+        public DateTime TimestampUtc { get; set; }
+        public string Actor { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+    }
+}

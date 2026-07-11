@@ -1,0 +1,370 @@
+@page "/appraisals"
+@page "/pencarian-data/main"
+@page "/pencarian-data"
+@attribute [Authorize]
+@inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject ILogger<Main> Logger
+
+<PageTitle>Pencarian Data</PageTitle>
+
+<ErrorBoundary>
+    <ChildContent>
+        <BaseCard Title="Pencarian Data" Subtitle="Daftar aplikasi untuk proses appraisal dan verifikasi." Class="mx-auto w-full max-w-6xl">
+            <div class="space-y-5">
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                    <div class="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_36%),linear-gradient(180deg,#f8fbff_0%,#f1f6fd_100%)] p-5">
+                        <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Workspace</p>
+                        <h3 class="mt-0 mb-2 text-xl font-extrabold text-slate-800">Monitoring data appraisal dalam satu tampilan</h3>
+                        <p class="mb-0 max-w-2xl text-sm leading-6 text-slate-600">Gunakan panel filter untuk menyaring aplikasi, lanjutkan ke halaman detail untuk review, lalu masuk ke proses edit atau approval sesuai role.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Total Aplikasi</p>
+                            <p class="mb-0 text-2xl font-extrabold text-slate-800">@_result.TotalItems</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Status Filter</p>
+                            <p class="mb-0 text-base font-bold text-slate-700">@GetActiveStatusLabel()</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Kategori Nasabah</p>
+                            <p class="mb-0 text-base font-bold text-slate-700">@GetActiveApplicantTypeLabel()</p>
+                        </div>
+                    </div>
+                </div>
+
+                <BaseSectionPanel Eyebrow="Filter" Title="Pencarian dan Aksi" Subtitle="Saring data berdasarkan kata kunci, status, dan kategori nasabah, lalu lanjutkan ke input baru bila diperlukan.">
+                    <div class="grid grid-cols-1 gap-3 xl:grid-cols-[1.2fr_0.7fr_0.7fr_auto] xl:items-end">
+                        <BaseTextField Id="search" Label="Pencarian" @bind-Value="_search" Placeholder="Nama debitur / identitas / lokasi" />
+
+                        <BaseSelectField TValue="AppraisalStatus?" Id="statusFilter" Label="Filter Status" @bind-Value="_selectedStatus" disabled="@_isSupervisorCheckerView">
+                            @if (_isSupervisorCheckerView)
+                            {
+                                <option value="@AppraisalStatus.Submitted">@AppraisalStatus.Submitted</option>
+                            }
+                            else
+                            {
+                                <option value="">Semua</option>
+                                @foreach (var status in Enum.GetValues<AppraisalStatus>())
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            }
+                        </BaseSelectField>
+
+                        <BaseSelectField TValue="ApplicantType?" Id="applicantTypeFilter" Label="Kategori Nasabah" @bind-Value="_selectedApplicantType">
+                            <option value="">Semua</option>
+                            <option value="@ApplicantType.Business">Badan Usaha</option>
+                            <option value="@ApplicantType.Individual">Individu</option>
+                        </BaseSelectField>
+
+                        <div class="mb-4 flex flex-col gap-2 sm:flex-row xl:justify-end">
+                            <BaseButton Variant="brand" Size="lg" Class="w-full sm:w-auto" OnClick="ApplyFilterAsync">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path d="M3 5h14"></path>
+                                        <path d="M6 10h8"></path>
+                                        <path d="M8.5 15h3"></path>
+                                    </svg>
+                                    <span>Apply</span>
+                                </span>
+                            </BaseButton>
+                            @if (!_isSupervisorCheckerView)
+                            {
+                                <BaseLinkButton Href="@AppRoutes.PencarianData.Create" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                                    <span class="inline-flex items-center gap-2">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path d="M10 4v12"></path>
+                                            <path d="M4 10h12"></path>
+                                        </svg>
+                                        <span>Add New</span>
+                                    </span>
+                                </BaseLinkButton>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_search) || _selectedStatus.HasValue || _selectedApplicantType.HasValue)
+                    {
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @if (!string.IsNullOrWhiteSpace(_search))
+                            {
+                                <span class="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Kata kunci: @_search</span>
+                            }
+                            @if (_selectedStatus.HasValue)
+                            {
+                                <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">Status: @_selectedStatus</span>
+                            }
+                            @if (_selectedApplicantType.HasValue)
+                            {
+                                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Kategori: @ResolveApplicantTypeLabel(_selectedApplicantType.Value.ToString())</span>
+                            }
+                        </div>
+                    }
+                </BaseSectionPanel>
+
+                <LoadingSpinner Visible="_isLoading" />
+
+                @if (!string.IsNullOrWhiteSpace(_loadError))
+                {
+                    <BaseAlert Variant="danger" Class="mb-3">
+                        Gagal memuat data pencarian. Detail: @_loadError
+                    </BaseAlert>
+                }
+
+                @if (!_isLoading)
+                {
+                    <BaseSectionPanel Eyebrow="Daftar Aplikasi" Title="Hasil Pencarian" Subtitle="@BuildResultsSubtitle()">
+                        <BaseTable TItem="AppraisalListItemDto" Items="_result.Items" ColSpan="9">
+                            <HeaderTemplate>
+                                <BaseTableHeaderCell Class="w-16">No</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>No. Aplikasi</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>Segment</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>Nama</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>NIK/NPWP</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>No. Akta</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>DOB/Tgl Berdiri</BaseTableHeaderCell>
+                                <BaseTableHeaderCell>Jenis Nasabah</BaseTableHeaderCell>
+                                <BaseTableHeaderCell Align="center" Class="w-36">Action</BaseTableHeaderCell>
+                            </HeaderTemplate>
+                            <RowTemplate Context="item">
+                                <BaseTableCell Tone="muted">@GetRowNumber(item)</BaseTableCell>
+                                <BaseTableCell Tone="default">@DisplayValue(item.ApplicationNumber)</BaseTableCell>
+                                <BaseTableCell>@DisplayValue(item.Segment)</BaseTableCell>
+                                <BaseTableCell Tone="default">
+                                    <div class="font-semibold text-slate-700">@item.DebtorName</div>
+                                </BaseTableCell>
+                                <BaseTableCell>@DisplayValue(item.IdentityNumber)</BaseTableCell>
+                                <BaseTableCell>@DisplayValue(item.DeedNumber)</BaseTableCell>
+                                <BaseTableCell Tone="soft">@ResolveApplicantDate(item)</BaseTableCell>
+                                <BaseTableCell Class="whitespace-nowrap">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em]"
+                                          style="border-color: @(GetApplicantTypeBorderColor(item.ApplicantType)); background: @(GetApplicantTypeBackground(item.ApplicantType)); color: @(GetApplicantTypeTextColor(item.ApplicantType));">
+                                        @ResolveApplicantTypeLabel(item.ApplicantType)
+                                    </span>
+                                </BaseTableCell>
+                                <BaseTableCell Align="center" Padding="compact" Class="whitespace-nowrap">
+                                    <BaseLinkButton Href="@AppRoutes.PencarianData.WithSelectedId(item.Id)" Variant="info" Size="sm" Class="min-w-[6.75rem] justify-center px-3">
+                                        <span class="inline-flex items-center justify-center gap-2">
+                                            <span class="grid h-5 w-5 place-items-center rounded-full"
+                                                  style="background: color-mix(in srgb, var(--brand-primary) 14%, #ffffff); color: var(--brand-primary);">
+                                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                <path d="M2.5 10s2.5-5 7.5-5 7.5 5 7.5 5-2.5 5-7.5 5-7.5-5-7.5-5z"></path>
+                                                <circle cx="10" cy="10" r="2.2"></circle>
+                                                </svg>
+                                            </span>
+                                            <span>Detail</span>
+                                        </span>
+                                    </BaseLinkButton>
+                                </BaseTableCell>
+                            </RowTemplate>
+                        </BaseTable>
+
+                        <BasePagination CurrentPage="@_pageNumber"
+                                        TotalPages="@_result.TotalPages"
+                                        TotalItems="@_result.TotalItems"
+                                        PageSize="@PageSize"
+                                        ItemLabel="aplikasi"
+                                        OnPrevious="PrevPage"
+                                        OnNext="NextPage" />
+                    </BaseSectionPanel>
+                }
+            </div>
+        </BaseCard>
+    </ChildContent>
+    <ErrorContent Context="exception">
+        <BaseAlert Variant="danger" Class="mb-3">
+            Terjadi error saat render halaman Pencarian Data.
+        </BaseAlert>
+        <div class="text-xs text-slate-500">@exception.Message</div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSupervisorCheckerView;
+    private string _loadError = string.Empty;
+    private string _search = string.Empty;
+    private AppraisalStatus? _selectedStatus;
+    private ApplicantType? _selectedApplicantType;
+    private int _pageNumber = 1;
+    private const int PageSize = 10;
+
+    private PagedResult<AppraisalListItemDto> _result = new()
+    {
+        Items = Array.Empty<AppraisalListItemDto>(),
+        TotalItems = 0,
+        PageNumber = 1,
+        PageSize = PageSize
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ResolveRoleScopeAsync();
+        await LoadAsync();
+    }
+
+    private async Task ResolveRoleScopeAsync()
+    {
+        var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        var user = authState.User;
+
+        _isSupervisorCheckerView = user.IsInRole("Supervisor") || user.IsInRole("Checker");
+
+        if (_isSupervisorCheckerView)
+        {
+            _selectedStatus = AppraisalStatus.Submitted;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _loadError = string.Empty;
+
+        try
+        {
+            var effectiveStatus = _isSupervisorCheckerView ? AppraisalStatus.Submitted : _selectedStatus;
+
+            _result = await AppraisalService.GetPagedAsync(new AppraisalQueryDto
+            {
+                Search = _search,
+                Status = effectiveStatus,
+                ApplicantType = _selectedApplicantType,
+                PageNumber = _pageNumber,
+                PageSize = PageSize
+            });
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.Message;
+            Logger.LogError(ex, "Failed loading Pencarian Data main page.");
+
+            _result = new PagedResult<AppraisalListItemDto>
+            {
+                Items = Array.Empty<AppraisalListItemDto>(),
+                TotalItems = 0,
+                PageNumber = 1,
+                PageSize = PageSize
+            };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private int GetRowNumber(AppraisalListItemDto item)
+    {
+        var index = _result.Items.ToList().FindIndex(x => x.Id == item.Id);
+        return ((_pageNumber - 1) * PageSize) + index + 1;
+    }
+
+    private async Task PrevPage()
+    {
+        if (_pageNumber <= 1)
+        {
+            return;
+        }
+
+        _pageNumber--;
+        await LoadAsync();
+    }
+
+    private async Task NextPage()
+    {
+        if (_pageNumber >= _result.TotalPages)
+        {
+            return;
+        }
+
+        _pageNumber++;
+        await LoadAsync();
+    }
+
+    private Task ApplyFilterAsync(MouseEventArgs _) => LoadAsync();
+
+    private static string DisplayValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string GetActiveStatusLabel()
+    {
+        if (_isSupervisorCheckerView)
+        {
+            return AppraisalStatus.Submitted.ToString();
+        }
+
+        return _selectedStatus?.ToString() ?? "Semua";
+    }
+
+    private string GetActiveApplicantTypeLabel()
+        => _selectedApplicantType.HasValue ? ResolveApplicantTypeLabel(_selectedApplicantType.Value.ToString()) : "Semua";
+
+    private string GetPageIndicator() => $"{_pageNumber}/{Math.Max(_result.TotalPages, 1)}";
+
+    private string BuildResultsSubtitle()
+    {
+        var searchInfo = string.IsNullOrWhiteSpace(_search) ? "tanpa kata kunci" : $"kata kunci '{_search}'";
+        var statusInfo = _isSupervisorCheckerView
+            ? AppraisalStatus.Submitted.ToString()
+            : (_selectedStatus?.ToString() ?? "semua status");
+        var applicantTypeInfo = _selectedApplicantType.HasValue
+            ? ResolveApplicantTypeLabel(_selectedApplicantType.Value.ToString())
+            : "semua kategori nasabah";
+        return $"Menampilkan {_result.Items.Count} data pada halaman ini dengan filter {searchInfo}, {statusInfo}, dan {applicantTypeInfo}.";
+    }
+
+    private static string ResolveApplicantDate(AppraisalListItemDto item)
+    {
+        var date = item.ApplicantType.Equals("Business", StringComparison.OrdinalIgnoreCase)
+            ? item.BusinessEstablishedDate
+            : item.DateOfBirth;
+
+        return date.HasValue ? date.Value.ToString("dd MMM yyyy").ToUpperInvariant() : "-";
+    }
+
+    private static string ResolveApplicantTypeLabel(string applicantType) => applicantType.Trim().ToLowerInvariant() switch
+    {
+        "business" => "Badan Usaha",
+        "individual" => "Individu",
+        _ => "-"
+    };
+
+    private static string GetApplicantTypeVariant(string applicantType) => applicantType.Trim().ToLowerInvariant() switch
+    {
+        "business" => "info",
+        "individual" => "neutral",
+        _ => "neutral"
+    };
+
+    private static string GetApplicantTypeBackground(string applicantType) => applicantType.Trim().ToLowerInvariant() switch
+    {
+        "business" => "color-mix(in srgb, var(--brand-primary-soft) 88%, #ffffff)",
+        "individual" => "var(--theme-panel-soft-bg)",
+        _ => "var(--theme-panel-soft-bg)"
+    };
+
+    private static string GetApplicantTypeBorderColor(string applicantType) => applicantType.Trim().ToLowerInvariant() switch
+    {
+        "business" => "var(--brand-primary-soft-border)",
+        "individual" => "var(--theme-panel-border)",
+        _ => "var(--theme-panel-border)"
+    };
+
+    private static string GetApplicantTypeTextColor(string applicantType) => applicantType.Trim().ToLowerInvariant() switch
+    {
+        "business" => "var(--brand-primary)",
+        "individual" => "var(--theme-text-default)",
+        _ => "var(--theme-text-default)"
+    };
+
+    private static string GetStatusVariant(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "approved" => "success",
+        "rejected" => "danger",
+        "submitted" => "warning",
+        _ => "neutral"
+    };
+}

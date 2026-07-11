@@ -1,0 +1,47 @@
+<td class="@BuildClass()">
+    @ChildContent
+</td>
+
+@code {
+    [Parameter] public string Align { get; set; } = "left";
+    [Parameter] public string Tone { get; set; } = "default";
+    [Parameter] public string Padding { get; set; } = "normal";
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public required RenderFragment ChildContent { get; set; }
+
+    private string BuildClass()
+    {
+        var classes = new List<string>
+        {
+            "align-middle"
+        };
+
+        classes.Add(Padding.ToLowerInvariant() switch
+        {
+            "compact" => "px-4 py-3",
+            _ => "px-4 py-4"
+        });
+
+        classes.Add(Align.ToLowerInvariant() switch
+        {
+            "center" => "text-center",
+            "right" => "text-right",
+            _ => "text-left"
+        });
+
+        classes.Add(Tone.ToLowerInvariant() switch
+        {
+            "muted" => "text-sm text-slate-400",
+            "soft" => "text-sm text-slate-500",
+            "strong" => "text-sm font-semibold text-slate-700",
+            _ => "text-sm text-slate-600"
+        });
+
+        if (!string.IsNullOrWhiteSpace(Class))
+        {
+            classes.Add(Class);
+        }
+
+        return string.Join(" ", classes);
+    }
+}

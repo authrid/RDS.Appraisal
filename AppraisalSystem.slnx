@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AppraisalSystem.Application/AppraisalSystem.Application.csproj" />
+    <Project Path="src/AppraisalSystem.Domain/AppraisalSystem.Domain.csproj" />
+    <Project Path="src/AppraisalSystem.Infrastructure/AppraisalSystem.Infrastructure.csproj" />
+    <Project Path="src/AppraisalSystem.Web/AppraisalSystem.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AppraisalSystem.SmokeTests/AppraisalSystem.SmokeTests.csproj" />
+  </Folder>
+</Solution>

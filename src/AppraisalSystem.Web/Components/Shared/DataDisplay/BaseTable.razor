@@ -1,0 +1,49 @@
+@typeparam TItem
+
+<div class="overflow-hidden rounded-[1.25rem] border bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)]" style="border-color: var(--theme-panel-border); background: var(--theme-panel-bg);">
+    <div class="overflow-x-auto">
+        <table class="min-w-full border-separate border-spacing-0 bg-white text-sm" style="background: var(--theme-panel-bg);">
+            <thead class="text-[11px] uppercase tracking-[0.12em] backdrop-blur"
+                   style="background: linear-gradient(180deg, color-mix(in srgb, var(--brand-primary-soft) 78%, #ffffff) 0%, color-mix(in srgb, var(--theme-panel-soft-bg) 92%, #ffffff) 100%); color: var(--brand-primary);">
+            <tr>
+                @HeaderTemplate
+            </tr>
+        </thead>
+            <tbody class="divide-y bg-white" style="--tw-divide-opacity: 1; border-color: var(--theme-panel-border); background: var(--theme-panel-bg);">
+                @if (Items.Any())
+                {
+                    @foreach (var item in Items)
+                    {
+                        <tr class="transition hover:bg-slate-50/70">
+                            @RowTemplate(item)
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="@ColSpan" class="px-6 py-14 text-center text-sm" style="color: var(--theme-text-muted);">
+                            <div class="mx-auto flex max-w-xs flex-col items-center gap-3">
+                                <div class="grid h-12 w-12 place-items-center rounded-2xl" style="background: var(--theme-panel-soft-bg); color: var(--theme-text-muted);">
+                                    <span class="text-lg font-black">0</span>
+                                </div>
+                                <div>
+                                    <p class="font-semibold" style="color: var(--theme-text-default);">Belum ada data</p>
+                                    <p class="mt-1 text-xs" style="color: var(--theme-text-muted);">@EmptyText</p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required IReadOnlyCollection<TItem> Items { get; set; }
+    [Parameter] public required RenderFragment HeaderTemplate { get; set; }
+    [Parameter] public required RenderFragment<TItem> RowTemplate { get; set; }
+    [Parameter] public int ColSpan { get; set; } = 1;
+    [Parameter] public string EmptyText { get; set; } = "Tidak ada data.";
+}

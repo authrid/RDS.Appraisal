@@ -1,0 +1,211 @@
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager NavigationManager
+
+<li>
+    @if (Item.HasChildren)
+    {
+        <div class="group relative flex items-center gap-2 py-1"
+             style="@BuildNodeStyle(Depth)">
+            @if (!string.IsNullOrWhiteSpace(Item.Href))
+            {
+                <button type="button"
+                        aria-label="@BuildOpenAriaLabel()"
+                        class="secondary-sidebar-link flex min-w-0 flex-1 items-center px-1 py-2 text-left text-sm font-semibold transition-colors duration-200 hover:text-slate-900"
+                        @onclick="OnParentLinkClickAsync">
+                    <span class="truncate tracking-[0.01em]">@Item.Title</span>
+                </button>
+            }
+            else
+            {
+                <button type="button"
+                        class="secondary-sidebar-link flex min-w-0 flex-1 items-center px-1 py-2 text-left text-sm font-semibold transition-colors duration-200 hover:text-slate-900"
+                        @onclick="ToggleBranchAsync">
+                    <span class="truncate tracking-[0.01em]">@Item.Title</span>
+                </button>
+            }
+
+            <span class="grid h-7 w-7 shrink-0 place-items-center text-slate-500"
+                  role="presentation"
+                  aria-hidden="true">
+                <svg class="h-4 w-4 transition-transform duration-200 @(IsExpanded ? "rotate-90" : string.Empty)" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M7 5l6 5-6 5"></path>
+                </svg>
+            </span>
+        </div>
+
+        @if (IsExpanded)
+        {
+            <ul class="relative mt-1 space-y-1"
+                style="@BuildChildOffsetStyle(Depth)">
+                @for (var index = 0; index < Item.Children.Count; index++)
+                {
+                    var child = Item.Children[index];
+                    var childKey = $"{NodeKey}/{index}";
+
+                    <SecondarySidebarTreeNode Item="child"
+                                              Depth="@(Depth + 1)"
+                                              NodeKey="childKey"
+                                              IsExpandedResolver="IsExpandedResolver"
+                                              OnToggle="OnToggle"
+                                              OnOpen="OnOpen" />
+                }
+            </ul>
+        }
+    }
+    else
+    {
+        @if (Depth == 0)
+        {
+            <NavLink href="@ResolvedItemHref"
+                     Match="@Item.Match"
+                     class="secondary-sidebar-link flex items-center px-1 py-2 text-sm font-semibold no-underline transition-colors duration-200 hover:text-slate-900"
+                     style="@BuildRootLeafStyle()"
+                     @onclick="OnRootLeafClickAsync">
+                <span class="truncate tracking-[0.01em]">@Item.Title</span>
+            </NavLink>
+        }
+        else
+        {
+            <NavLink href="@ResolvedItemHref"
+                     Match="@Item.Match"
+                     class="secondary-sidebar-link group/leaf relative flex items-center border-b border-slate-300 px-1 py-2 text-sm font-medium no-underline transition-colors duration-200 hover:border-slate-500 hover:text-slate-900"
+                     style="@BuildLeafStyle(Depth)">
+                <span class="relative mr-2 grid h-3 w-3 place-items-center">
+                    <span class="pointer-events-none absolute right-[0.45rem] top-1/2 h-px w-3 -translate-y-1/2 bg-slate-300"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-slate-400 transition-colors duration-200 group-hover/leaf:bg-slate-700"></span>
+                </span>
+                <span class="truncate tracking-[0.01em]">@Item.Title</span>
+            </NavLink>
+        }
+    }
+</li>
+
+@code {
+    [Parameter, EditorRequired] public SecondarySidebarItem Item { get; set; } = default!;
+    [Parameter] public int Depth { get; set; }
+    [Parameter, EditorRequired] public string NodeKey { get; set; } = string.Empty;
+    [Parameter] public Func<string, bool>? IsExpandedResolver { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+    [Parameter] public EventCallback<string> OnOpen { get; set; }
+    [Parameter] public EventCallback<string> OnLeafClick { get; set; }
+
+    private string ResolvedItemHref => NavigationManager.ToAppPath(Item.Href ?? string.Empty);
+
+    private bool _isExpandedLocal;
+    private string? _lastRouteUri;
+
+    private bool IsExpanded => _isExpandedLocal || (IsExpandedResolver?.Invoke(NodeKey) ?? false) || IsParentRouteActive();
+
+    protected override void OnParametersSet()
+    {
+        var resolverExpanded = IsExpandedResolver?.Invoke(NodeKey) ?? false;
+        var currentUri = NavigationManager.Uri;
+
+        if (!string.Equals(_lastRouteUri, currentUri, StringComparison.OrdinalIgnoreCase))
+        {
+            _isExpandedLocal = resolverExpanded;
+            _lastRouteUri = currentUri;
+            return;
+        }
+
+        if (resolverExpanded)
+        {
+            _isExpandedLocal = true;
+        }
+    }
+
+    private async Task ToggleBranchAsync()
+    {
+        _isExpandedLocal = !_isExpandedLocal;
+        await OnToggle.InvokeAsync(NodeKey);
+    }
+
+    private Task OpenBranchAsync()
+    {
+        _isExpandedLocal = true;
+        return OnOpen.HasDelegate ? OnOpen.InvokeAsync(NodeKey) : ToggleBranchAsync();
+    }
+
+    private async Task OnParentLinkClickAsync()
+    {
+        await OpenBranchAsync();
+
+        if (!string.IsNullOrWhiteSpace(Item.Href))
+        {
+            NavigationManager.NavigateTo(ResolvedItemHref);
+        }
+    }
+
+    private Task OnRootLeafClickAsync()
+    {
+        return OnLeafClick.HasDelegate ? OnLeafClick.InvokeAsync(NodeKey) : Task.CompletedTask;
+    }
+
+    private bool IsParentRouteActive()
+    {
+        if (!Item.HasChildren || string.IsNullOrWhiteSpace(Item.Href))
+        {
+            return false;
+        }
+
+        var currentPath = NormalizePath(NavigationManager.Uri);
+        var itemPath = NormalizePath(Item.Href);
+
+        if (Item.Match == NavLinkMatch.All)
+        {
+            return string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(itemPath)
+            && currentPath.StartsWith($"{itemPath}/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string NormalizePath(string href)
+    {
+        var appPath = NavigationManager.ToAppPath(href);
+        var absoluteUri = NavigationManager.ToAbsoluteUri(appPath);
+
+        var absolutePath = absoluteUri.AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(absolutePath))
+        {
+            return string.Empty;
+        }
+
+        var basePath = NavigationManager.ToAbsoluteUri(NavigationManager.BaseUri).AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(basePath))
+        {
+            return absolutePath;
+        }
+
+        if (string.Equals(absolutePath, basePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var prefixedBase = $"{basePath}/";
+        return absolutePath.StartsWith(prefixedBase, StringComparison.OrdinalIgnoreCase)
+            ? absolutePath[prefixedBase.Length..]
+            : absolutePath;
+    }
+
+    private string BuildOpenAriaLabel() => $"Open {Item.Title}";
+
+    private static string BuildNodeStyle(int depth) => $"padding-left: {BuildNodePadding(depth)};";
+
+    private static string BuildLeafStyle(int depth) => $"padding-left: {BuildLeafPadding(depth)};";
+
+    private static string BuildRootLeafStyle() => "padding-left: 0.1rem;";
+
+    private static string BuildChildOffsetStyle(int depth) => $"margin-left: {BuildChildOffset(depth)};";
+
+    private static string BuildNodePadding(int depth) => $"{0.1m + (depth * 0.4m)}rem";
+
+    private static string BuildLeafPadding(int depth) => $"{0.55m + (depth * 0.7m)}rem";
+
+    private static string BuildChildOffset(int depth) => $"{0.55m + (depth * 0.25m)}rem";
+}
