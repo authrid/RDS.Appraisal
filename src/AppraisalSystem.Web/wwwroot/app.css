@@ -177,6 +177,13 @@ a {
     box-shadow: 0 10px 22px color-mix(in srgb, var(--brand-primary) 12%, transparent);
 }
 
+.secondary-sidebar-link--root.active {
+    border-color: var(--theme-panel-border-strong) !important;
+    background: var(--theme-panel-bg) !important;
+    color: var(--theme-text-default) !important;
+    box-shadow: none !important;
+}
+
 .sidebar-link--compact {
     border-radius: 0.85rem;
 }

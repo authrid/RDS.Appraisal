@@ -100,14 +100,6 @@ public sealed class AppraisalUpsertDto
     [MaxLength(100)]
     public string CollateralSubtype { get; set; } = string.Empty;
 
-    [Required]
-    [MaxLength(250)]
-    public string Location { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(400)]
-    public string Specification { get; set; } = string.Empty;
-
     [Range(typeof(decimal), "0", "999999999999", ErrorMessage = "Nilai pasar harus antara 0 dan 999999999999.")]
     public decimal MarketValue { get; set; }
 

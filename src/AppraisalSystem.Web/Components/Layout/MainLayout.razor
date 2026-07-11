@@ -80,7 +80,25 @@
         }
     }
 
-    private string HeaderTitle => ActiveSecondarySidebar?.Title ?? "Appraisal System";
+    private string HeaderTitle
+    {
+        get
+        {
+            var primaryTitle = ResolvePrimarySidebarTitle();
+            var secondaryTitles = ResolveActiveSecondaryBreadcrumbTitles(ActiveSecondarySidebar?.Items ?? []);
+            if (secondaryTitles.Count == 0)
+            {
+                secondaryTitles = ResolveSecondaryBreadcrumbFallback();
+            }
+
+            if (secondaryTitles.Count == 0)
+            {
+                return primaryTitle;
+            }
+
+            return secondaryTitles[^1];
+        }
+    }
 
     private string MainPanelClass => _sidebarHidden
         ? "min-h-screen transition-all duration-[280ms] ease-out"
@@ -118,6 +136,207 @@
         }
 
         return null;
+    }
+
+    private string ResolvePrimarySidebarTitle()
+    {
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0)
+        {
+            return "Dashboard";
+        }
+
+        var firstSegment = segments[0];
+
+        if (string.Equals(firstSegment, "dashboard", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Dashboard";
+        }
+
+        if (AppRoutes.PencarianData.IsModuleSegment(firstSegment))
+        {
+            return "Pencarian Data";
+        }
+
+        if (string.Equals(firstSegment, AppRoutes.PengkinianData.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            return "Pengkinian Data";
+        }
+
+        if (string.Equals(firstSegment, AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            return "Inquiry";
+        }
+
+        if (string.Equals(firstSegment, AppRoutes.Report.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            return "Report";
+        }
+
+        if (string.Equals(firstSegment, AppRoutes.SystemPages.ThemePreview.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            return "Theme Preview";
+        }
+
+        return "Appraisal System";
+    }
+
+    private IReadOnlyList<string> ResolveActiveSecondaryBreadcrumbTitles(IReadOnlyList<SecondarySidebarItem> items)
+    {
+        List<string> best = [];
+
+        foreach (var item in items)
+        {
+            if (!TryResolveActiveSecondaryChain(item, out var chain))
+            {
+                continue;
+            }
+
+            if (chain.Count > best.Count)
+            {
+                best = chain;
+            }
+        }
+
+        return best;
+    }
+
+    private IReadOnlyList<string> ResolveSecondaryBreadcrumbFallback()
+    {
+        if (ActiveSecondarySidebar is null)
+        {
+            return [];
+        }
+
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0)
+        {
+            return [];
+        }
+
+        if (!AppRoutes.PencarianData.IsModuleSegment(segments[0]) || !SelectedWorkspaceAppraisalId.HasValue)
+        {
+            return [];
+        }
+
+        if (segments.Length == 1)
+        {
+            return ["Main"];
+        }
+
+        if (int.TryParse(segments[1], out _))
+        {
+            return ["Main"];
+        }
+
+        if (!AppRoutes.PencarianData.IsWorkspaceQuerySegment(segments[1]))
+        {
+            return [];
+        }
+
+        return [NormalizeWorkspaceSegmentTitle(segments[1])];
+    }
+
+    private static string NormalizeWorkspaceSegmentTitle(string segment)
+    {
+        if (string.Equals(segment, "main", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Main";
+        }
+
+        if (string.Equals(segment, "memo", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Memo";
+        }
+
+        if (string.Equals(segment, "history", StringComparison.OrdinalIgnoreCase))
+        {
+            return "History";
+        }
+
+        return segment;
+    }
+
+    private bool TryResolveActiveSecondaryChain(SecondarySidebarItem item, out List<string> chain)
+    {
+        chain = [];
+
+        var bestChildChain = new List<string>();
+        foreach (var child in item.Children)
+        {
+            if (!TryResolveActiveSecondaryChain(child, out var childChain))
+            {
+                continue;
+            }
+
+            if (childChain.Count > bestChildChain.Count)
+            {
+                bestChildChain = childChain;
+            }
+        }
+
+        var selfActive = IsSecondarySidebarItemActive(item);
+        var hasActiveDescendant = bestChildChain.Count > 0;
+        if (!selfActive && !hasActiveDescendant)
+        {
+            return false;
+        }
+
+        chain.Add(item.Title);
+        chain.AddRange(bestChildChain);
+        return true;
+    }
+
+    private bool IsSecondarySidebarItemActive(SecondarySidebarItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Href))
+        {
+            return false;
+        }
+
+        var currentPath = NormalizePath(NavigationManager.Uri);
+        var itemPath = NormalizePath(item.Href);
+
+        if (item.Match == NavLinkMatch.All)
+        {
+            return string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(currentPath, itemPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(itemPath)
+            && currentPath.StartsWith($"{itemPath}/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string NormalizePath(string href)
+    {
+        var appPath = NavigationManager.ToAppPath(href);
+        var absoluteUri = NavigationManager.ToAbsoluteUri(appPath);
+
+        var absolutePath = absoluteUri.AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(absolutePath))
+        {
+            return string.Empty;
+        }
+
+        var basePath = NavigationManager.ToAbsoluteUri(NavigationManager.BaseUri).AbsolutePath.Trim('/');
+        if (string.IsNullOrWhiteSpace(basePath))
+        {
+            return absolutePath;
+        }
+
+        if (string.Equals(absolutePath, basePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var prefixedBase = $"{basePath}/";
+        return absolutePath.StartsWith(prefixedBase, StringComparison.OrdinalIgnoreCase)
+            ? absolutePath[prefixedBase.Length..]
+            : absolutePath;
     }
 
     private IReadOnlyList<SecondarySidebarItem>? ResolvePencarianDataSidebarItems()

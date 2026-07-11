@@ -8,7 +8,7 @@
 
 <PageTitle>Form Appraisal</PageTitle>
 
-<BaseCard Title="Form Appraisal" Subtitle="Lengkapi data debitur, aplikasi, dan detail agunan secara ringkas." Class="mx-auto w-full max-w-6xl">
+<BaseCard Title="Form Appraisal" Subtitle="Lengkapi data debitur dan data aplikasi secara ringkas." Class="mx-auto w-full max-w-6xl">
     <EditForm Model="_model" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <BaseValidationSummary />
@@ -193,80 +193,12 @@
             </section>
 
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="border-b border-slate-200 pb-3">
-                    <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Data Agunan Appraisal</p>
-                    <p class="mt-1 mb-0 text-sm text-slate-500">Lengkapi data agunan untuk proses appraisal.</p>
-                </div>
-
-                <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Spesifikasi Agunan</p> *@
-                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            <BaseTextField Id="location" Label="Lokasi Agunan" Class="md:col-span-2" @bind-Value="_model.Location" />
-                            <BaseTextField Id="specification" Label="Luas / Spesifikasi" Class="md:col-span-2" @bind-Value="_model.Specification" />
-                        </div>
-                    </div>
-
-                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Parameter Penilaian</p> *@
-                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            @* <BaseNumberField TValue="decimal" Id="marketValue" Label="Nilai Pasar" @bind-Value="_model.MarketValue" /> *@
-                            @* <BaseNumberField TValue="decimal" Id="liquidationValue" Label="Nilai Likuidasi" @bind-Value="_model.LiquidationValue" /> *@
-                            <BaseTextAreaField Id="notes" Label="Catatan" Class="md:col-span-2" InputClass="min-h-28" @bind-Value="_model.Notes" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="mb-3 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
                     <div>
                         <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Chat AI</p>
                         <h3 class="mt-1 mb-0 text-base font-bold text-slate-700">Data pembanding untuk pendekatan pasar</h3>
                     </div>
-                    @* <BaseButton Variant="secondary" Size="sm" OnClick="AddComparableAsync">Tambah Pembanding</BaseButton> *@
-                </div>
-
-                @* @for (var i = 0; i < _comparables.Count; i++)
-                {
-                    var rowNumber = i + 1;
-                    var comparable = _comparables[i];
-
-                    <div class="mb-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                        <div class="mb-2 flex items-center justify-between">
-                            <p class="mb-0 text-sm font-semibold text-slate-700">Pembanding @rowNumber</p>
-                            @if (_comparables.Count > 1)
-                            {
-                                <BaseButton Variant="danger" Size="sm" OnClick="@(e => RemoveComparableAsync(e, i))">
-                                    <span class="inline-flex items-center gap-2">
-                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path d="M4.5 6h11"></path>
-                                            <path d="M7.5 6v9"></path>
-                                            <path d="M12.5 6v9"></path>
-                                            <path d="M6 6l.5-2h7L14 6"></path>
-                                            <path d="M6.5 6v10h7V6"></path>
-                                        </svg>
-                                        <span>Hapus</span>
-                                    </span>
-                                </BaseButton>
-                            }
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
-                            <BaseTextField Id="@($"comp-source-{i}")" Label="Sumber Data" Class="xl:col-span-3" @bind-Value="comparable.Source" />
-                            <BaseTextField Id="@($"comp-location-{i}")" Label="Lokasi Pembanding" Class="xl:col-span-3" @bind-Value="comparable.Location" />
-                            <BaseTextField Id="@($"comp-spec-{i}")" Label="Spesifikasi" Class="xl:col-span-3" @bind-Value="comparable.Specification" />
-
-                            <BaseNumberField TValue="decimal?" Id="@($"comp-land-{i}")" Label="Luas Tanah (m2)" Class="xl:col-span-3" @bind-Value="comparable.LandArea" />
-                            <BaseNumberField TValue="decimal?" Id="@($"comp-building-{i}")" Label="Luas Bangunan (m2)" Class="xl:col-span-3" @bind-Value="comparable.BuildingArea" />
-                            <BaseNumberField TValue="decimal?" Id="@($"comp-price-{i}")" Label="Harga Penawaran" Class="xl:col-span-3" @bind-Value="comparable.OfferPrice" />
-
-                            <BaseNumberField TValue="decimal?" Id="@($"comp-adjustment-{i}")" Label="Penyesuaian (%)" Class="xl:col-span-3" @bind-Value="comparable.AdjustmentPercent" />
-                            <BaseNumberField TValue="decimal?" Id="@($"comp-indication-{i}")" Label="Nilai Indikasi" Class="xl:col-span-3" @bind-Value="comparable.IndicatedValue" />
-                            <BaseTextField Id="@($"comp-notes-{i}")" Label="Keterangan" Class="xl:col-span-6" @bind-Value="comparable.Remarks" />
-                        </div>
-                    </div>
-                } *@
+                </div> 
             </section>
         </div>
 
@@ -406,8 +338,6 @@
             IdentityNumber = existing.IdentityNumber,
             CollateralType = existing.CollateralType,
             CollateralSubtype = existing.CollateralSubtype,
-            Location = existing.Location,
-            Specification = existing.Specification,
             MarketValue = existing.MarketValue,
             LiquidationValue = existing.LiquidationValue,
             Notes = plainNotes

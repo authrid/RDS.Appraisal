@@ -68,8 +68,6 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             IdentityNumber = request.IdentityNumber,
             CollateralType = request.CollateralType,
             CollateralSubtype = request.CollateralSubtype,
-            Location = request.Location,
-            Specification = request.Specification,
             MarketValue = request.MarketValue,
             LiquidationValue = request.LiquidationValue,
             Notes = request.Notes,
@@ -126,8 +124,6 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         appraisal.IdentityNumber = request.IdentityNumber;
         appraisal.CollateralType = request.CollateralType;
         appraisal.CollateralSubtype = request.CollateralSubtype;
-        appraisal.Location = request.Location;
-        appraisal.Specification = request.Specification;
         appraisal.MarketValue = request.MarketValue;
         appraisal.LiquidationValue = request.LiquidationValue;
         appraisal.Notes = request.Notes;

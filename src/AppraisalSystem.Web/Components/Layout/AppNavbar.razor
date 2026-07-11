@@ -14,7 +14,10 @@
         </button>
 
         <div>
-            <p class="mb-0 text-[11px] font-bold uppercase tracking-[0.08em]" style="color: var(--theme-text-muted);">Dashboard / Appraisal</p>
+            @if (!string.IsNullOrWhiteSpace(Eyebrow))
+            {
+                <p class="mb-0 text-[11px] font-bold uppercase tracking-[0.08em]" style="color: var(--theme-text-muted);">@Eyebrow</p>
+            }
             <h1 class="app-navbar__title m-0 text-lg font-bold" style="color: var(--theme-text-strong);">@Title</h1>
         </div>
     </div>
@@ -50,6 +53,7 @@
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     [Parameter] public string Title { get; set; } = "Appraisal Dashboard";
+    [Parameter] public string Eyebrow { get; set; } = "Active Page";
     [Parameter] public bool SidebarHidden { get; set; }
     [Parameter] public EventCallback OnToggleSidebar { get; set; }
 

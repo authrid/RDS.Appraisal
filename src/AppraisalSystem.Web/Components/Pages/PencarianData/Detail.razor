@@ -108,18 +108,18 @@
             </div>
 
             <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                <BaseSectionPanel Eyebrow="Data Agunan" Subtitle="Spesifikasi objek yang menjadi dasar penilaian.">
+                <BaseSectionPanel Eyebrow="Data Jaminan" Subtitle="Spesifikasi objek yang menjadi dasar penilaian.">
                     <dl class="grid grid-cols-1 gap-x-4 gap-y-3 text-sm text-slate-600 sm:grid-cols-[180px_1fr]">
-                        <dt class="font-semibold text-slate-500">Jenis Agunan</dt><dd>@GetCollateralLabel(_detail.CollateralType)</dd>
+                        @* <dt class="font-semibold text-slate-500">Jenis Agunan</dt><dd>@GetCollateralLabel(_detail.CollateralType)</dd> *@
                         <dt class="font-semibold text-slate-500">Jenis Jaminan</dt><dd>@Display(_detail.CollateralSubtype)</dd>
-                        <dt class="font-semibold text-slate-500">Lokasi Agunan</dt><dd class="font-semibold text-slate-700">@Display(_detail.Location)</dd>
+                        @* <dt class="font-semibold text-slate-500">Lokasi Agunan</dt><dd class="font-semibold text-slate-700">@Display(_detail.Location)</dd>
                         <dt class="font-semibold text-slate-500">Luas / Spesifikasi</dt><dd>@Display(_detail.Specification)</dd>
                         <dt class="font-semibold text-slate-500">Nilai Pasar</dt><dd>@FormatCurrency(_detail.MarketValue)</dd>
-                        <dt class="font-semibold text-slate-500">Nilai Likuidasi</dt><dd>@FormatCurrency(_detail.LiquidationValue)</dd>
+                        <dt class="font-semibold text-slate-500">Nilai Likuidasi</dt><dd>@FormatCurrency(_detail.LiquidationValue)</dd> *@
                     </dl>
                 </BaseSectionPanel>
 
-                <BaseSectionPanel Eyebrow="Catatan" Subtitle="Komentar dari appraiser dan supervisor.">
+                @* <BaseSectionPanel Eyebrow="Catatan" Subtitle="Komentar dari appraiser dan supervisor.">
                     <div class="space-y-3">
                         <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                             <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Catatan Appraiser</p>
@@ -130,7 +130,7 @@
                             <p class="mb-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">@Display(_detail.SupervisorNote)</p>
                         </div>
                     </div>
-                </BaseSectionPanel>
+                </BaseSectionPanel> *@
             </div>
 
             @if (_comparables.Count > 0)
