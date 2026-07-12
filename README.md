@@ -9,9 +9,11 @@ Aplikasi web untuk pengelolaan data appraisal (penilaian agunan/jaminan), dibang
 - [Arsitektur](#arsitektur)
 - [Cara Menjalankan](#cara-menjalankan)
 - [Konfigurasi](#konfigurasi)
+- [Data Referensi](#data-referensi)
 - [Panduan Development](#panduan-development)
+- [Fitur Chat AI](#fitur-chat-ai)
 - [Testing](#testing)
-- [Dokumentasi Tambahan](#dokumentasi-tambahan)
+- [Git / Push ke GitHub](#git--push-ke-github)
 
 ## Teknologi
 
@@ -22,67 +24,72 @@ Aplikasi web untuk pengelolaan data appraisal (penilaian agunan/jaminan), dibang
 | ORM | Entity Framework Core |
 | Database | SQLite (default), SQL Server, PostgreSQL |
 | Autentikasi | Cookie Authentication (user dari konfigurasi) |
-| AI/LLM      | Anthropic Claude (via OrchestratorClientService) |
-| Styling     | Tailwind CSS (via CDN) + custom CSS variables (`wwwroot/app.css`) |
-| Testing     | xUnit + bUnit (smoke tests) |
+| AI/LLM | Anthropic Claude (via `OrchestratorClientService`) |
+| Styling | Tailwind CSS (via CDN) + custom CSS variables (`wwwroot/app.css`) |
+| Testing | xUnit + bUnit (smoke tests) |
 
 ## Struktur Project
 
 ```
-RDS.Core.Apprasial/
-├── AppraisalSystem.slnx              # Solution file
-├── docs/                             # Dokumentasi workflow & backlog
+RDS.Appraisal/
+├── AppraisalSystem.slnx                 # Solution file
+├── .gitignore
+├── README.md
+├── .github/                             # CI / workflows (jika ada)
 ├── src/
-│   ├── AppraisalSystem.Domain/       # Lapisan Domain (inti bisnis)
-│   │   ├── Entities/                 # Entity domain (Appraisal)
-│   │   └── Enums/                    # Enum bisnis (AppraisalStatus, CollateralType, dll.)
+│   ├── AppraisalSystem.Domain/          # Lapisan Domain (inti bisnis)
+│   │   ├── Entities/                    # Entity domain (Appraisal)
+│   │   └── Enums/                       # Enum bisnis (AppraisalStatus, CollateralType, dll.)
 │   │
-│   ├── AppraisalSystem.Application/  # Lapisan Application (use case)
-│   │   ├── Common/                   # Utilitas umum (PagedResult)
-│   │   ├── Dtos/                     # Data Transfer Objects
-│   │   ├── Interfaces/               # Kontrak (IAppraisalRepository, IAppraisalService)
-│   │   ├── Services/                 # Implementasi business logic (AppraisalService)
-│   │   └── DependencyInjection.cs    # Registrasi service lapisan ini
+│   ├── AppraisalSystem.Application/     # Lapisan Application (use case)
+│   │   ├── Common/                      # AppRoles, PagedResult, EnumDisplayExtensions, dll.
+│   │   ├── Dtos/                        # Data Transfer Objects (+ ReferenceItemDto)
+│   │   ├── Features/ChatUI/             # Kontrak/DTO terkait Chat AI
+│   │   ├── Interfaces/                  # IAppraisalRepository, IAppraisalService, IReferenceDataService
+│   │   ├── Services/                    # AppraisalService (business logic)
+│   │   └── DependencyInjection.cs
 │   │
 │   ├── AppraisalSystem.Infrastructure/  # Lapisan Infrastructure (akses data)
-│   │   ├── Options/                  # Opsi konfigurasi (DatabaseOptions)
-│   │   ├── Persistence/              # DbContext & DbInitializer (seeding)
-│   │   ├── Repositories/             # Implementasi repository (EF Core)
-│   │   └── DependencyInjection.cs    # Registrasi DbContext & repository
+│   │   ├── Migrations/                  # EF Core migrations
+│   │   ├── Options/                     # DatabaseOptions
+│   │   ├── Persistence/                 # DbContext & DbInitializer (seeding)
+│   │   ├── Repositories/                # Implementasi repository (EF Core)
+│   │   └── DependencyInjection.cs
 │   │
-│   └── AppraisalSystem.Web/          # Lapisan Presentasi (Blazor Server)
-│       ├── Authentication/           # Model user dari konfigurasi
+│   └── AppraisalSystem.Web/             # Lapisan Presentasi (Blazor Server)
+│       ├── Authentication/              # Model user dari konfigurasi
 │       ├── Components/
-│       │   ├── Features/                 # Fitur spesifik, misal Chat AI
-│       │   │   └── ChatUI/               # Komponen untuk fitur Chat AI
-│       │   ├── Layout/               # Layout, navbar, sidebar
-│       │   ├── Pages/                # Halaman per modul (lihat tabel di bawah)
-│       │   └── Shared/               # Komponen reusable
-│       │       ├── Base/             # Form input, button, card, dll.
-│       │       ├── DataDisplay/      # Table, pagination, badge
-│       │       └── Feedback/         # Alert, dialog konfirmasi, spinner
-│       ├── Options/                  # ThemeOptions (branding & warna)
-│       ├── Services/                   # Layanan sisi client (OrchestratorClientService, SavedSessionsService)
-│       ├── wwwroot/                  # Asset statis (CSS, JS, gambar)
-│       ├── AppRoutes.cs              # Definisi terpusat semua route aplikasi
-│       ├── Program.cs                # Entry point & konfigurasi pipeline
-│       └── appsettings.json          # Konfigurasi aplikasi
+│       │   ├── Features/ChatUI/         # Komponen fitur Chat AI
+│       │   ├── Layout/                  # MainLayout, AppSidebar, AppSecondarySidebar, navbar
+│       │   ├── Pages/                   # Halaman per modul (lihat tabel di bawah)
+│       │   └── Shared/                  # Base, DataDisplay, Feedback
+│       ├── Navigation/                  # AppNavigation, AppMenuItem, AppMenuIcon
+│       ├── Options/                     # ThemeOptions
+│       ├── Services/                    # JsonReferenceDataService, OrchestratorClientService, dll.
+│       ├── wwwroot/
+│       │   └── data/reference/          # Lookup JSON (gender, province, city, branch, dll.)
+│       ├── AppRoutes.cs                 # Definisi terpusat semua route
+│       ├── Program.cs
+│       └── appsettings.json
 │
 └── tests/
-    └── AppraisalSystem.SmokeTests/   # Smoke test (service, route, render komponen)
+    └── AppraisalSystem.SmokeTests/      # Smoke test (service, route, reference data, render)
 ```
 
 ### Modul Halaman (`Components/Pages/`)
 
-| Folder | Modul | Route Utama |
+| Path | Modul | Route utama |
 |---|---|---|
 | `Dashboard.razor` | Dashboard ringkasan | `/dashboard` |
-| `PencarianData/` | Pencarian data appraisal (list, detail, form, memo, history) | `/pencarian-data` |
-| `PengkinianData/` | Pengkinian data | `/pengkinian-data` |
-| `Inquiry/` | Inquiry data | `/inquiry` |
+| `PencarianData/` | List, detail, form, memo, history | `/pencarian-data` |
+| `PengkinianData/` | Reopen Approved → Draft untuk diedit ulang | `/pengkinian-data` |
+| `Inquiry/` | Inquiry / pencarian baca | `/inquiry` |
 | `Report/` | Laporan & export | `/report` |
-| `ChatUI/ChatContainer.razor` | Fitur Chat AI (tanpa route) | - |
-| `Login.razor` | Halaman login | `/login` |
+| `ThemePreview.razor` | Preview tema (Admin) | `/theme-preview` |
+| `Login.razor` | Login | `/login` |
+| `AccessDenied.razor` / `NotFound.razor` / `Error.razor` | Sistem | `/access-denied`, `/not-found`, `/Error` |
+
+Menu primer didefinisikan di `Navigation/AppNavigation.cs` (bukan hardcode di sidebar). Role menu memakai `AppRoles` di Application.
 
 ## Arsitektur
 
@@ -95,16 +102,18 @@ Web  ──►  Application  ──►  Domain
 ```
 
 - **Domain** — entity dan enum murni, tanpa dependensi eksternal.
-- **Application** — business logic, DTO, dan interface. Tidak tahu detail database.
-- **Infrastructure** — implementasi teknis: EF Core `DbContext`, repository, seeding database.
-- **Web** — UI Blazor, autentikasi, routing, dan komposisi dependency injection.
+- **Application** — business logic, DTO, interface, dan konstanta role (`AppRoles`).
+- **Infrastructure** — EF Core `DbContext`, migrations, repository, seeding database.
+- **Web** — UI Blazor, autentikasi, routing, reference JSON, dan komposisi DI.
 
 Aturan penting:
 
 1. **Domain tidak boleh mereferensi project lain.**
-2. **Application hanya mereferensi Domain.** Akses data dilakukan lewat interface (`IAppraisalRepository`).
+2. **Application hanya mereferensi Domain.** Akses data lewat interface (`IAppraisalRepository`).
 3. **Web tidak mengakses `DbContext` langsung** — selalu melalui service di Application.
 4. **Semua route didefinisikan di `AppRoutes.cs`** — jangan hardcode string route di komponen.
+5. **Menu primer** lewat `AppNavigation`; **role name** lewat `AppRoles`.
+6. **Lookup/master ringan** (gender, wilayah, cabang, dll.) lewat `IReferenceDataService` + JSON di `wwwroot/data/reference/`.
 
 ## Cara Menjalankan
 
@@ -117,7 +126,7 @@ Aturan penting:
 ```bash
 # Clone repository
 git clone <url-repository>
-cd RDS.Core.Apprasial
+cd RDS.Appraisal
 
 # Restore & build
 dotnet build
@@ -126,7 +135,11 @@ dotnet build
 dotnet run --project src/AppraisalSystem.Web
 ```
 
-Aplikasi berjalan di URL yang tercantum pada `Properties/launchSettings.json`. Database SQLite (`appraisal-system.db`) dibuat dan di-seed otomatis saat pertama kali dijalankan (lihat `DbInitializer`).
+Aplikasi berjalan di URL yang tercantum pada `Properties/launchSettings.json`.
+
+Database SQLite lokal (`appraisal-system.db`) **dibuat dan di-seed otomatis** saat startup (`DbInitializer`). File `.db` **tidak di-commit** ke Git — setiap mesin mendapat DB baru dari seed.
+
+> Jika build gagal dengan error `MSB3027` / file locked oleh `AppraisalSystem.Web`, stop proses app yang sedang jalan (Stop Debugging / tutup `dotnet run`) lalu build ulang.
 
 ### Akun Default (Development)
 
@@ -135,8 +148,9 @@ Aplikasi berjalan di URL yang tercantum pada `Properties/launchSettings.json`. D
 | `admin` | `admin123` | Admin |
 | `appraiser` | `appraiser123` | Appraiser |
 | `supervisor` | `supervisor123` | Supervisor |
+| `checker` | `checker123` | Checker |
 
-> ⚠️ Akun didefinisikan di `appsettings.json` bagian `Authentication:Users`. Ganti sebelum deploy ke production.
+> Akun didefinisikan di `appsettings.json` bagian `Authentication:Users`. Ganti sebelum deploy ke production.
 
 ## Konfigurasi
 
@@ -144,18 +158,16 @@ Semua konfigurasi ada di `src/AppraisalSystem.Web/appsettings.json`:
 
 ### Database
 
-Mendukung tiga provider — atur di section `Database`:
-
 ```json
 "Database": {
-  "Provider": "Sqlite",          // Sqlite | SqlServer | PostgreSQL
+  "Provider": "Sqlite",
   "ConnectionString": "Data Source=appraisal-system.db"
 }
 ```
 
-### Tema / Branding
+Provider yang didukung: `Sqlite` | `SqlServer` | `PostgreSQL`.
 
-Warna dan logo aplikasi dapat diubah tanpa menyentuh kode lewat section `Theme`:
+### Tema / Branding
 
 ```json
 "Theme": {
@@ -165,73 +177,112 @@ Warna dan logo aplikasi dapat diubah tanpa menyentuh kode lewat section `Theme`:
 }
 ```
 
-Warna divalidasi saat startup (format hex). Gunakan halaman `/theme-preview` untuk melihat hasilnya.
+Warna divalidasi saat startup (format hex). Gunakan `/theme-preview` untuk melihat hasilnya.
+
+## Data Referensi
+
+Lookup UI (dropdown, filter, cascading wilayah) diambil dari JSON:
+
+`src/AppraisalSystem.Web/wwwroot/data/reference/`
+
+| File | Isi |
+|---|---|
+| `gender.json` | Jenis kelamin |
+| `marital-status.json` | Status perkawinan |
+| `legal-entity.json` | Bentuk badan hukum |
+| `country.json` | Negara |
+| `province.json` / `city.json` / `district.json` / `subdistrict.json` | Wilayah (cascading via `ParentCode`) |
+| `branch.json` | Cabang |
+| `collateral-subtype.json` | Subtipe jaminan |
+
+Kontrak: `IReferenceDataService` (Application). Implementasi: `JsonReferenceDataService` (Web, cached).
 
 ## Panduan Development
 
 ### Menambah Halaman Baru
 
-1. Tambahkan konstanta route di `src/AppraisalSystem.Web/AppRoutes.cs`.
-2. Buat file `.razor` di `Components/Pages/<NamaModul>/` dengan direktif `@page` yang mengacu ke konstanta route tersebut.
-3. Tambahkan menu navigasi di `Components/Layout/AppSidebar.razor` bila diperlukan.
-4. Tambahkan smoke test route di `tests/AppraisalSystem.SmokeTests/RouteRegistrationSmokeTests.cs`.
+1. Tambahkan konstanta route di `AppRoutes.cs`.
+2. Buat file `.razor` di `Components/Pages/<NamaModul>/` dengan `@page` yang mengacu ke konstanta tersebut.
+3. Tambahkan item menu di `Navigation/AppNavigation.cs` bila perlu (sertakan role lewat `AppRoles` jika terbatas).
+4. Tambahkan smoke test route di `tests/AppraisalSystem.SmokeTests/`.
 
 ### Menambah Fitur / Use Case Baru
 
-Ikuti alur lapisan dari dalam ke luar:
+1. **Domain** — entity / enum.
+2. **Application** — DTO, interface, service.
+3. **Infrastructure** — repository / `DbContext` / migration bila skema berubah.
+4. **Web** — konsumsi service lewat `@inject`.
 
-1. **Domain** — tambah/ubah entity di `Domain/Entities` atau enum di `Domain/Enums`.
-2. **Application** — buat DTO di `Dtos/`, tambahkan method pada interface (`Interfaces/`), lalu implementasikan di `Services/`.
-3. **Infrastructure** — implementasikan method repository baru di `Repositories/`, sesuaikan `AppraisalDbContext` bila skema berubah.
-4. **Web** — konsumsi service lewat `@inject` di komponen Blazor.
+### Lookup Baru
+
+1. Tambah file JSON di `wwwroot/data/reference/`.
+2. Extend `IReferenceDataService` + `JsonReferenceDataService`.
+3. Pakai di Form/filter; tambah smoke test reference bila relevan.
 
 ### Menggunakan Komponen Shared
 
-Gunakan komponen di `Components/Shared/` agar UI konsisten:
-
 - **Form**: `BaseTextField`, `BaseSelectField`, `BaseNumberField`, `BaseCheckboxField`, dll.
-- **Tampilan data**: `BaseTable`, `BasePagination`, `BaseBadge`.
+- **Tampilan data**: `BaseTable`, `BasePagination`, `BaseBadge`, `ApplicantTypeBadge`.
 - **Feedback**: `BaseAlert`, `ConfirmationDialog`, `LoadingSpinner`.
-
-Buat komponen baru di folder `Shared/` bila pola UI dipakai lebih dari satu halaman.
 
 ### Konvensi
 
-- Bahasa route/modul mengikuti istilah bisnis (mis. `pencarian-data`, `pengkinian-data`).
-- Nullable reference types dan implicit usings aktif di seluruh project.
-- Styling menggunakan utility class Tailwind CSS; warna brand diambil dari CSS variables (`--brand-*`) yang di-generate dari `ThemeOptions` — jangan hardcode warna hex di komponen.
-- Registrasi service dilakukan lewat extension method `AddApplication()` dan `AddInfrastructure()` — bukan langsung di `Program.cs`.
+- Bahasa route/modul mengikuti istilah bisnis (`pencarian-data`, `pengkinian-data`).
+- Nullable reference types dan implicit usings aktif.
+- Styling: utility Tailwind; warna brand dari CSS variables (`--brand-*`) — jangan hardcode hex di komponen.
+- Registrasi service lewat `AddApplication()` dan `AddInfrastructure()`.
 
 ## Fitur Chat AI
 
-Fitur Chat AI dirancang untuk membantu pengguna dalam mencari dan menganalisis properti secara interaktif. Ini mengintegrasikan kemampuan pemrosesan bahasa alami dengan OCR (Optical Character Recognition) dan crawling data web.
+Chat AI membantu pencarian/analisis properti (OCR sertifikat, crawling, chat streaming).
 
-### Alur Kerja Utama:
+Komponen kunci:
 
-1.  **Analisis Sertifikat via OCR**: Pengguna dapat mengunggah gambar sertifikat tanah. AI akan mengekstrak informasi kunci seperti alamat, luas tanah, dan jenis sertifikat menggunakan OCR.
-2.  **Pencarian Properti Otomatis**: Berdasarkan informasi yang diekstrak dari sertifikat (terutama alamat), sistem secara otomatis mencari properti serupa di platform real estat eksternal (misalnya Brighton.co.id) melalui proses crawling.
-3.  **Interaksi Chat**: Pengguna dapat mengajukan pertanyaan atau memberikan instruksi lebih lanjut melalui antarmuka chat. AI dapat memberikan detail properti, melakukan pencarian lebih lanjut dengan parameter yang disempurnakan, atau memberikan estimasi pasar.
-4.  **Penyimpanan Sesi**: Properti yang dipilih dari hasil pencarian dapat disimpan dalam sesi untuk referensi di masa mendatang.
-
-### Komponen Kunci:
-
--   `ChatContainer.razor`: Komponen UI utama yang mengelola interaksi chat, tampilan pesan, unggah gambar, dan menampilkan hasil.
--   `OrchestratorClientService`: Bertanggung jawab untuk berkomunikasi dengan layanan backend AI, termasuk pengiriman gambar untuk OCR, memulai crawling properti, dan mengirim/menerima pesan chat secara streaming.
--   `SavedSessionsService`: Mengelola penyimpanan dan pengambilan sesi properti yang disimpan oleh pengguna di `localStorage` browser.
+- `Components/Features/ChatUI/` — UI chat
+- `OrchestratorClientService` — komunikasi ke backend AI
+- `SavedSessionsService` — sesi tersimpan di `localStorage`
 
 ## Testing
 
 ```bash
-# Jalankan semua test
 dotnet test
 ```
-
-Smoke test mencakup:
 
 | File | Cakupan |
 |---|---|
 | `AppraisalServiceSmokeTests.cs` | Business logic `AppraisalService` |
 | `AppRoutesSmokeTests.cs` | Helper route di `AppRoutes` |
-| `RouteRegistrationSmokeTests.cs` | Semua route terdaftar di komponen |
+| `AppNavigationSmokeTests.cs` | Manifest menu `AppNavigation` |
+| `RouteRegistrationSmokeTests.cs` | Route terdaftar di komponen |
 | `ComponentRenderSmokeTests.cs` | Render komponen (bUnit) |
+| `JsonReferenceDataServiceSmokeTests.cs` | Load JSON reference |
+| `ReferenceDataFoundationSmokeTests.cs` | Fondasi reference data |
 
+## Git / Push ke GitHub
+
+Yang **tidak** ikut di-commit (lihat `.gitignore`):
+
+- Build output (`bin/`, `obj/`)
+- IDE (`.vs/`, `.vscode/`, `.idea/`)
+- Database lokal SQLite (`*.db`, `*.db-shm`, `*.db-wal`)
+- Secret/local override (`appsettings.*.local.json`, dll.)
+
+Setelah clone, jalankan app sekali agar DB lokal + seed terbentuk otomatis.
+
+```bash
+# Contoh alur aman
+dotnet build
+dotnet test
+git status          # pastikan tidak ada *.db / bin / obj
+git add ...
+git commit -m "..."
+git push
+```
+
+Jika file `.db` pernah ter-track sebelumnya:
+
+```bash
+git rm --cached src/AppraisalSystem.Web/appraisal-system.db
+git rm --cached src/AppraisalSystem.Web/appraisal-system.db-shm
+git rm --cached src/AppraisalSystem.Web/appraisal-system.db-wal
+```

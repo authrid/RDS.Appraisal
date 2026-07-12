@@ -31,6 +31,50 @@ body {
     min-height: 100%;
 }
 
+/* Sticky shell stays fully clear — no frosted strip that “cuts” the page. */
+.app-navbar-shell {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+/* Glass lives on the navbar panel only. */
+.app-navbar__panel {
+    border-color: color-mix(in srgb, #ffffff 55%, var(--theme-panel-border-strong));
+    background: color-mix(in srgb, var(--theme-panel-bg) 68%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.35);
+    backdrop-filter: blur(14px) saturate(1.35);
+    box-shadow:
+        0 8px 22px rgba(15, 23, 42, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    transition:
+        background-color 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        backdrop-filter 220ms ease,
+        -webkit-backdrop-filter 220ms ease;
+}
+
+.app-navbar-shell--scrolled .app-navbar__panel {
+    border-color: color-mix(in srgb, #ffffff 72%, var(--theme-panel-border));
+    background: color-mix(in srgb, var(--theme-panel-bg) 42%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(1.55);
+    backdrop-filter: blur(22px) saturate(1.55);
+    box-shadow:
+        0 12px 28px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-navbar__panel {
+        background: color-mix(in srgb, var(--theme-panel-bg) 90%, transparent);
+    }
+
+    .app-navbar-shell--scrolled .app-navbar__panel {
+        background: color-mix(in srgb, var(--theme-panel-bg) 82%, transparent);
+    }
+}
+
 a {
     color: var(--brand-primary);
 }

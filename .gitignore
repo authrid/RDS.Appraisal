@@ -2,32 +2,56 @@
 [Bb]in/
 [Oo]bj/
 out/
+publish/
+artifacts/
 
-# Visual Studio / VS Code
+# Visual Studio / VS Code / Rider
 .vs/
 .vscode/
+.idea/
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+*.rsuser
 
 # NuGet / packages
 *.nupkg
 *.snupkg
 packages/
+project.lock.json
 
 # Logs
 *.log
+logs/
 
 # Test and coverage artifacts
 TestResults/
 coverage/
 *.coverage
 *.coveragexml
+*.trx
 
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Tool caches
 *.cache
+
+# Local SQLite databases (runtime; created/seeded on app start)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Secrets / local overrides (keep appsettings.json tracked)
+appsettings.*.local.json
+*.pfx
+*.key
+secrets.json
+
+# Publish / deployment leftovers
+*.publishproj
+*.pubxml.user
