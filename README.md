@@ -22,8 +22,9 @@ Aplikasi web untuk pengelolaan data appraisal (penilaian agunan/jaminan), dibang
 | ORM | Entity Framework Core |
 | Database | SQLite (default), SQL Server, PostgreSQL |
 | Autentikasi | Cookie Authentication (user dari konfigurasi) |
-| Styling | Tailwind CSS (via CDN) + custom CSS variables (`wwwroot/app.css`) |
-| Testing | xUnit + bUnit (smoke tests) |
+| AI/LLM      | Anthropic Claude (via OrchestratorClientService) |
+| Styling     | Tailwind CSS (via CDN) + custom CSS variables (`wwwroot/app.css`) |
+| Testing     | xUnit + bUnit (smoke tests) |
 
 ## Struktur Project
 
@@ -52,6 +53,8 @@ RDS.Core.Apprasial/
 │   └── AppraisalSystem.Web/          # Lapisan Presentasi (Blazor Server)
 │       ├── Authentication/           # Model user dari konfigurasi
 │       ├── Components/
+│       │   ├── Features/                 # Fitur spesifik, misal Chat AI
+│       │   │   └── ChatUI/               # Komponen untuk fitur Chat AI
 │       │   ├── Layout/               # Layout, navbar, sidebar
 │       │   ├── Pages/                # Halaman per modul (lihat tabel di bawah)
 │       │   └── Shared/               # Komponen reusable
@@ -59,6 +62,7 @@ RDS.Core.Apprasial/
 │       │       ├── DataDisplay/      # Table, pagination, badge
 │       │       └── Feedback/         # Alert, dialog konfirmasi, spinner
 │       ├── Options/                  # ThemeOptions (branding & warna)
+│       ├── Services/                   # Layanan sisi client (OrchestratorClientService, SavedSessionsService)
 │       ├── wwwroot/                  # Asset statis (CSS, JS, gambar)
 │       ├── AppRoutes.cs              # Definisi terpusat semua route aplikasi
 │       ├── Program.cs                # Entry point & konfigurasi pipeline
@@ -77,6 +81,7 @@ RDS.Core.Apprasial/
 | `PengkinianData/` | Pengkinian data | `/pengkinian-data` |
 | `Inquiry/` | Inquiry data | `/inquiry` |
 | `Report/` | Laporan & export | `/report` |
+| `ChatUI/ChatContainer.razor` | Fitur Chat AI (tanpa route) | - |
 | `Login.razor` | Halaman login | `/login` |
 
 ## Arsitektur
@@ -196,6 +201,23 @@ Buat komponen baru di folder `Shared/` bila pola UI dipakai lebih dari satu hala
 - Nullable reference types dan implicit usings aktif di seluruh project.
 - Styling menggunakan utility class Tailwind CSS; warna brand diambil dari CSS variables (`--brand-*`) yang di-generate dari `ThemeOptions` — jangan hardcode warna hex di komponen.
 - Registrasi service dilakukan lewat extension method `AddApplication()` dan `AddInfrastructure()` — bukan langsung di `Program.cs`.
+
+## Fitur Chat AI
+
+Fitur Chat AI dirancang untuk membantu pengguna dalam mencari dan menganalisis properti secara interaktif. Ini mengintegrasikan kemampuan pemrosesan bahasa alami dengan OCR (Optical Character Recognition) dan crawling data web.
+
+### Alur Kerja Utama:
+
+1.  **Analisis Sertifikat via OCR**: Pengguna dapat mengunggah gambar sertifikat tanah. AI akan mengekstrak informasi kunci seperti alamat, luas tanah, dan jenis sertifikat menggunakan OCR.
+2.  **Pencarian Properti Otomatis**: Berdasarkan informasi yang diekstrak dari sertifikat (terutama alamat), sistem secara otomatis mencari properti serupa di platform real estat eksternal (misalnya Brighton.co.id) melalui proses crawling.
+3.  **Interaksi Chat**: Pengguna dapat mengajukan pertanyaan atau memberikan instruksi lebih lanjut melalui antarmuka chat. AI dapat memberikan detail properti, melakukan pencarian lebih lanjut dengan parameter yang disempurnakan, atau memberikan estimasi pasar.
+4.  **Penyimpanan Sesi**: Properti yang dipilih dari hasil pencarian dapat disimpan dalam sesi untuk referensi di masa mendatang.
+
+### Komponen Kunci:
+
+-   `ChatContainer.razor`: Komponen UI utama yang mengelola interaksi chat, tampilan pesan, unggah gambar, dan menampilkan hasil.
+-   `OrchestratorClientService`: Bertanggung jawab untuk berkomunikasi dengan layanan backend AI, termasuk pengiriman gambar untuk OCR, memulai crawling properti, dan mengirim/menerima pesan chat secara streaming.
+-   `SavedSessionsService`: Mengelola penyimpanan dan pengambilan sesi properti yang disimpan oleh pengguna di `localStorage` browser.
 
 ## Testing
 
