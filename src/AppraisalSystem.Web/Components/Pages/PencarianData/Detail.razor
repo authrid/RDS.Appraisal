@@ -359,6 +359,7 @@
 
     private bool CanEditCurrentAppraisal => !ReadOnlyMode
         && _detail is not null
+        && _detail.Status != AppraisalStatus.Approved
         && (_detail.Status == AppraisalStatus.Submitted ? _isSupervisorOrAdmin : _isAppraiserOrAdmin);
 
     private bool CanSubmitCurrentAppraisal => !ReadOnlyMode

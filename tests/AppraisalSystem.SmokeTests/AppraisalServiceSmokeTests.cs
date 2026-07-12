@@ -141,6 +141,86 @@ public sealed class AppraisalServiceSmokeTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SubmitAsync(existing.Id));
     }
 
+    [Fact]
+    public async Task UpdateAsync_WhenExistingStatusApproved_ThrowsInvalidOperationException()
+    {
+        var existing = new Appraisal
+        {
+            Id = 16,
+            ApplicationNumber = "APP-20260713-0016",
+            Segment = CustomerSegment.Consumer,
+            ApplicantType = ApplicantType.Individual,
+            Status = AppraisalStatus.Approved,
+            CreatedBy = "appraiser"
+        };
+
+        var repository = new FakeRepository();
+        repository.Entities[existing.Id] = existing;
+        var service = new AppraisalService(repository);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(new AppraisalUpsertDto
+        {
+            Id = existing.Id,
+            ApplicationNumber = "APP-20260713-0016",
+            Segment = CustomerSegment.Consumer,
+            ApplicantType = ApplicantType.Individual,
+            MakerId = "MKR01",
+            BranchCode = "001",
+            DebtorName = "Budi",
+            IdentityNumber = "ID-16",
+            CollateralType = CollateralType.Property,
+            CollateralSubtype = "Rumah",
+            MarketValue = 1000000000,
+            LiquidationValue = 800000000,
+            Notes = "Attempt edit approved"
+        }));
+    }
+
+    [Fact]
+    public async Task ReopenForPengkinianAsync_WhenApproved_ResetsStatusToDraftAndClearsSupervisorNote()
+    {
+        var existing = new Appraisal
+        {
+            Id = 30,
+            ApplicationNumber = "APP-20260713-0030",
+            Segment = CustomerSegment.Corporate,
+            ApplicantType = ApplicantType.Business,
+            Status = AppraisalStatus.Approved,
+            SupervisorNote = "OK",
+            CreatedBy = "appraiser"
+        };
+
+        var repository = new FakeRepository();
+        repository.Entities[existing.Id] = existing;
+        var service = new AppraisalService(repository);
+
+        await service.ReopenForPengkinianAsync(existing.Id, "admin.user");
+
+        Assert.Equal(AppraisalStatus.Draft, existing.Status);
+        Assert.Null(existing.SupervisorNote);
+        Assert.Contains("Pengkinian", existing.WorkflowHistoryJson ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ReopenForPengkinianAsync_WhenNotApproved_ThrowsInvalidOperationException()
+    {
+        var existing = new Appraisal
+        {
+            Id = 31,
+            ApplicationNumber = "APP-20260713-0031",
+            Segment = CustomerSegment.Consumer,
+            ApplicantType = ApplicantType.Individual,
+            Status = AppraisalStatus.Submitted,
+            CreatedBy = "appraiser"
+        };
+
+        var repository = new FakeRepository();
+        repository.Entities[existing.Id] = existing;
+        var service = new AppraisalService(repository);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReopenForPengkinianAsync(existing.Id));
+    }
+
     private sealed class FakeRepository : IAppraisalRepository
     {
         public AppraisalQueryDto? LastQuery { get; private set; }

@@ -106,6 +106,11 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             ?? throw new InvalidOperationException("Appraisal not found.");
         var previousStatus = appraisal.Status;
 
+        if (previousStatus == AppraisalStatus.Approved)
+        {
+            throw new InvalidOperationException("Data Approved tidak dapat diedit langsung. Gunakan menu Pengkinian Data.");
+        }
+
         appraisal.ApplicationNumber = request.ApplicationNumber;
         appraisal.Segment = request.Segment;
         appraisal.MakerId = request.MakerId;
@@ -183,6 +188,26 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         var note = string.IsNullOrWhiteSpace(supervisorNote) ? "Rejected tanpa catatan." : supervisorNote.Trim();
         await AppendWorkflowEntryAsync(id, actor, "Rejected", note, AppraisalStatus.Rejected, cancellationToken);
         await repository.SetStatusAsync(id, AppraisalStatus.Rejected, supervisorNote, cancellationToken);
+    }
+
+    public async Task ReopenForPengkinianAsync(int id, string? actor = null, CancellationToken cancellationToken = default)
+    {
+        var appraisal = await repository.GetByIdAsync(id, cancellationToken)
+            ?? throw new InvalidOperationException("Appraisal not found.");
+
+        if (appraisal.Status != AppraisalStatus.Approved)
+        {
+            throw new InvalidOperationException("Hanya data berstatus Approved yang dapat dikinikan.");
+        }
+
+        await AppendWorkflowEntryAsync(
+            id,
+            actor,
+            "Pengkinian",
+            "Data dikembalikan ke Draft untuk pengkinian.",
+            AppraisalStatus.Draft,
+            cancellationToken);
+        await repository.SetStatusAsync(id, AppraisalStatus.Draft, null, cancellationToken);
     }
 
     private async Task AppendWorkflowEntryAsync(int id, string? actor, string action, string note, AppraisalStatus stageStatus, CancellationToken cancellationToken)

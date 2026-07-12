@@ -21,6 +21,9 @@ public sealed class AppRoutesSmokeTests
     {
         Assert.Equal("/dashboard", AppRoutes.Dashboard.Main);
         Assert.Equal("/pengkinian-data", AppRoutes.PengkinianData.Main);
+        Assert.Equal(
+            "/pencarian-data/11111111-2222-3333-4444-555555555555/edit",
+            AppRoutes.PengkinianData.Edit("11111111-2222-3333-4444-555555555555"));
         Assert.Equal("/inquiry", AppRoutes.Inquiry.Main);
         Assert.Equal("/report", AppRoutes.Report.Main);
         Assert.Equal("/report/main", AppRoutes.Report.LegacyMain);

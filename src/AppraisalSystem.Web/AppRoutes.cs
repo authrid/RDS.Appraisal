@@ -33,6 +33,12 @@ public static class AppRoutes
     public static class PengkinianData
     {
         public const string Main = "/pengkinian-data";
+
+        public static string Edit(string publicId)
+        {
+            // Setelah reopen, form edit memakai route Pencarian Data yang sudah ada.
+            return PencarianData.Edit(publicId);
+        }
     }
 
     public static class Inquiry

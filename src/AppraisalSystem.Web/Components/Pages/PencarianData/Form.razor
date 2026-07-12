@@ -365,6 +365,13 @@
             return;
         }
 
+        // Approved hanya boleh dibuka lewat Pengkinian Data (reopen ke Draft).
+        if (existing.Status == AppraisalStatus.Approved)
+        {
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(existing.PublicId)));
+            return;
+        }
+
         var canEditExisting = isAdmin
             || isSupervisor
             || (isAppraiser && existing.Status != AppraisalStatus.Submitted);

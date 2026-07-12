@@ -15,6 +15,7 @@ public interface IAppraisalService
     Task SubmitAsync(int id, string? actor = null, CancellationToken cancellationToken = default);
     Task ApproveAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default);
     Task RejectAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default);
+    Task ReopenForPengkinianAsync(int id, string? actor = null, CancellationToken cancellationToken = default);
     Task<DashboardSummaryDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default);
     Task SaveListingsAsync(int appraisalId, List<PropertyListing> listings, CancellationToken cancellationToken = default);
     Task<List<PropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default);
