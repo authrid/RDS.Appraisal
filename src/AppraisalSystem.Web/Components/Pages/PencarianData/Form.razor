@@ -1,13 +1,17 @@
-@page "/appraisals/create"
-@page "/pencarian-data/create"
-@page "/pencarian-data/{PublicId:guid}/edit"
 @using AppraisalSystem.Application.Features.ChatUI
 @using AppraisalSystem.Web.Components.Features.ChatUI
 @using AppraisalSystem.Web.Services
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @attribute [Authorize(Roles = "Appraiser,Supervisor,Admin")]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject SavedSessionsService SavedSessions
 @inject NavigationManager NavigationManager
+@inject IWebHostEnvironment WebHostEnvironment
+
+@page "/appraisals/create"
+@page "/pencarian-data/create"
+@page "/pencarian-data/{PublicId:guid}/edit"
 
 <PageTitle>Form Appraisal</PageTitle>
 
@@ -43,7 +47,15 @@
                     <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                         @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Konteks Aplikasi</p> *@
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            <BaseTextField Id="branchCode" Label="Cabang" Class="md:col-span-2" @bind-Value="_model.BranchCode" />
+                            <BaseSearchListModalField Id="branchCode"
+                                                      Label="Cabang"
+                                                      Class="md:col-span-2"
+                                                      Value="@_selectedBranchName"
+                                                      ValueChanged="OnBranchNameChanged"
+                                                      Options="@_branchOptions"
+                                                      Placeholder="Pilih Cabang"
+                                                      ModalTitle="Pilih Cabang"
+                                                      ModalSubtitle="Pilih cabang dari daftar yang tersedia." />
 
                             <BaseFormInput Id="applicationDateUtc" Label="Tanggal Aplikasi">
                                 <InputDate TValue="DateTime?"
@@ -80,7 +92,7 @@
 
                 <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Identitas Debitur</p> *@
+                        @* <p class="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Informasi Tambahan</p> *@
 
                         @if (_model.ApplicantType == ApplicantType.Business)
                         {
@@ -199,7 +211,7 @@
                         <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Chat AI</p>
                         <h3 class="mt-1 mb-0 text-base font-bold text-slate-700">Data pembanding untuk pendekatan pasar</h3>
                     </div>
-                </div> 
+                </div>
                 <ChatContainer />
                 <SavedListTable DbListings="@_dbListings" DbSessionJson="@_dbSessionJson" />
             </section>
@@ -240,6 +252,7 @@
     private List<ComparableInput> _comparables = [new()];
     private List<PropertyListing>? _dbListings;
     private string? _dbSessionJson;
+    private string? _selectedBranchName;
     private static readonly string[] _genderOptions = ["Laki-laki", "Perempuan"];
     private static readonly string[] _maritalStatusOptions = ["Belum Menikah", "Menikah", "Cerai Hidup", "Cerai Mati"];
     private static readonly string[] _legalEntityOptions = ["PT", "CV", "Firma", "Koperasi", "Yayasan", "Lainnya"];
@@ -264,8 +277,64 @@
         "Perkantoran", "Hotel", "Rumah Kos", "Stand", "Toko", "Gedung", "Condotel", "Lain-lain"
     ];
 
+    private List<BranchData> _allBranchData = new();
+    private string[] _branchOptions = Array.Empty<string>();
+
+    private sealed class BranchData
+    {
+        [JsonPropertyName("code")]
+        public string Code { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
+        Console.WriteLine($"OnParametersSetAsync called. _allBranchData.Count: {_allBranchData.Count}");
+        // Load branch data
+        if (_allBranchData.Count == 0) // Only load once
+        {
+            try
+            {
+                var branchJsonPath = Path.Combine(WebHostEnvironment.WebRootPath, "data", "branch_data.json");
+                if (!File.Exists(branchJsonPath))
+                {
+                    Console.WriteLine($"Branch data file not found: {branchJsonPath}");
+                    _allBranchData = new List<BranchData>();
+                    _branchOptions = Array.Empty<string>();
+                    return;
+                }
+
+                var json = await File.ReadAllTextAsync(branchJsonPath);
+                _allBranchData = JsonSerializer.Deserialize<List<BranchData>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<BranchData>();
+
+                _allBranchData = _allBranchData
+                    .Where(b => !string.IsNullOrWhiteSpace(b.Name))
+                    .Select(b => new BranchData
+                    {
+                        Code = (b.Code ?? string.Empty).Trim(),
+                        Name = (b.Name ?? string.Empty).Trim()
+                    })
+                    .ToList();
+
+                _branchOptions = _allBranchData
+                    .Select(BuildBranchOptionText)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(x => x)
+                    .ToArray();
+                Console.WriteLine($"Successfully loaded {_allBranchData.Count} branch records.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading branch data from wwwroot/data/branch_data.json: {ex.Message}");
+                // Optionally, add a user-facing error message here.
+            }
+        }
+
         _isEdit = PublicId.HasValue;
 
         var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
@@ -347,6 +416,14 @@
             LiquidationValue = existing.LiquidationValue,
             Notes = plainNotes
         };
+
+        // Show branch as "code - name" while keeping persisted value as code on save.
+        var existingBranch = FindBranchBySelection(existing.BranchCode); // Find branch by its code
+        _selectedBranchName = existingBranch is null
+            ? existing.BranchCode // Fallback if not found, or if existing.BranchCode is already a name
+            : BuildBranchOptionText(existingBranch); // Display "code - name"
+        _model.BranchCode = existingBranch?.Code ?? existing.BranchCode; // Ensure model keeps the code
+
 
         _comparables = comparables.Count > 0 ? comparables : [new()];
 
@@ -602,6 +679,53 @@
     {
         _model.CollateralSubtype = value ?? string.Empty;
         return Task.CompletedTask;
+    }
+
+    private Task OnBranchNameChanged(string? value)
+    {
+        _selectedBranchName = value; // Update the display value
+        var selectedBranch = FindBranchBySelection(value);
+        _model.BranchCode = selectedBranch?.Code ?? string.Empty; // Store the code in the model
+        return Task.CompletedTask;
+    }
+
+    private static string BuildBranchOptionText(BranchData branch)
+    {
+        if (string.IsNullOrWhiteSpace(branch.Code))
+        {
+            return branch.Name;
+        }
+
+        return $"{branch.Code} - {branch.Name}";
+    }
+
+    private BranchData? FindBranchBySelection(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || _allBranchData.Count == 0)
+        {
+            return null;
+        }
+
+        var key = value.Trim();
+
+        var byDisplay = _allBranchData.FirstOrDefault(b =>
+            string.Equals(BuildBranchOptionText(b), key, StringComparison.OrdinalIgnoreCase));
+
+        if (byDisplay is not null)
+        {
+            return byDisplay;
+        }
+
+        var byCode = _allBranchData.FirstOrDefault(b =>
+            string.Equals(b.Code, key, StringComparison.OrdinalIgnoreCase));
+
+        if (byCode is not null)
+        {
+            return byCode;
+        }
+
+        return _allBranchData.FirstOrDefault(b =>
+            string.Equals(b.Name, key, StringComparison.OrdinalIgnoreCase));
     }
 
     private static AppraisalUpsertDto CreateDefaultModel()
