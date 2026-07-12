@@ -143,6 +143,8 @@ public sealed class AppraisalServiceSmokeTests
     {
         public AppraisalQueryDto? LastQuery { get; private set; }
         public Dictionary<int, Appraisal> Entities { get; } = new();
+        public Dictionary<int, List<SavedPropertyListing>> ListingsByAppraisalId { get; } = new();
+        public Dictionary<int, OcrResult> OcrByAppraisalId { get; } = new();
 
         public PagedResult<Appraisal> PagedResult { get; set; } = new()
         {
@@ -185,6 +187,55 @@ public sealed class AppraisalServiceSmokeTests
             }
 
             return Task.CompletedTask;
+        }
+
+        public Task ReplaceListingsAsync(int appraisalId, List<SavedPropertyListing> listings, CancellationToken cancellationToken = default)
+        {
+            ListingsByAppraisalId[appraisalId] = new List<SavedPropertyListing>(listings);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<SavedPropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default)
+        {
+            if (!ListingsByAppraisalId.TryGetValue(appraisalId, out var listings))
+            {
+                return Task.FromResult(new List<SavedPropertyListing>());
+            }
+
+            return Task.FromResult(new List<SavedPropertyListing>(listings));
+        }
+
+        public Task UpdateListingApprovalAsync(int listingId, ListingApprovalStatus status, CancellationToken cancellationToken = default)
+        {
+            foreach (var (_, listings) in ListingsByAppraisalId)
+            {
+                var listing = listings.FirstOrDefault(x => x.Id == listingId);
+                if (listing is null)
+                {
+                    continue;
+                }
+
+                listing.ApprovalStatus = status;
+                break;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task SaveOcrResultAsync(int appraisalId, OcrResult ocr, CancellationToken cancellationToken = default)
+        {
+            OcrByAppraisalId[appraisalId] = ocr;
+            return Task.CompletedTask;
+        }
+
+        public Task<OcrResult?> GetOcrResultAsync(int appraisalId, CancellationToken cancellationToken = default)
+        {
+            if (!OcrByAppraisalId.TryGetValue(appraisalId, out var ocr))
+            {
+                return Task.FromResult<OcrResult?>(null);
+            }
+
+            return Task.FromResult<OcrResult?>(ocr);
         }
     }
 }
