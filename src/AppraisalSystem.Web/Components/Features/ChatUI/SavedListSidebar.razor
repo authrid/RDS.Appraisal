@@ -47,11 +47,14 @@
 
     private Action? _handler;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await Service.InitializeAsync();
-        _handler = () => InvokeAsync(StateHasChanged);
-        Service.OnChange += _handler;
+        if (firstRender)
+        {
+            await Service.InitializeAsync();
+            _handler = () => InvokeAsync(StateHasChanged);
+            Service.OnChange += _handler;
+        }
     }
 
     private async Task HandleRemoveListing((string SessionId, string Url) args)

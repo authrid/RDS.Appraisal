@@ -1,0 +1,189 @@
+@using AppraisalSystem.Application.Features.ChatUI
+@using AppraisalSystem.Web.Services
+@using AppraisalSystem.Web.Components.Features.ChatUI.Base
+
+@implements IAsyncDisposable
+
+<div class="w-full overflow-x-auto rounded-lg border bg-card">
+    <table class="w-full text-left text-xs">
+        <thead>
+            <tr class="border-b bg-muted/30 text-muted-foreground">
+                <th class="w-8 px-2 py-2 text-center font-medium">#</th>
+                <th class="px-2 py-2 font-medium">Group</th>
+                <th class="px-2 py-2 font-medium">Properti</th>
+                <th class="w-32 px-2 py-2 font-medium">Harga</th>
+                <th class="w-28 px-2 py-2 font-medium">LT / LB</th>
+                <th class="w-12 px-2 py-2 font-medium text-right">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var index = 0;
+            }
+            @foreach (var session in Service.Sessions)
+            {
+                foreach (var item in session.Listings)
+                {
+                    index++;
+                    var rowId = $"lst-row-{index}";
+                    var isOpen = _openRows.Contains(rowId);
+
+                    <tr class="cursor-pointer border-b transition-colors hover:bg-muted/20 @(isOpen ? "bg-muted/10" : "")"
+                        @onclick="() => ToggleRow(rowId)"
+                        role="button"
+                        tabindex="0"
+                        @onkeydown="(e) => HandleKeydown(e, rowId)">
+                        <td class="px-2 py-2.5 text-center text-muted-foreground/60">@index</td>
+                        <td class="px-2 py-2.5">
+                            <span class="inline-flex items-center gap-1">
+                                <svg class="size-3 shrink-0 text-muted-foreground/60 transition-transform @(isOpen ? "" : "-rotate-90")"
+                                     xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                                <span class="truncate max-w-28">@session.Label</span>
+                            </span>
+                        </td>
+                        <td class="px-2 py-2.5">
+                            <span class="line-clamp-1 font-medium">
+                                @(!string.IsNullOrEmpty(item.Title)
+                                    ? item.Title
+                                    : (item.Description?.Length > 60 ? item.Description[..60] : item.Description ?? "Properti"))
+                            </span>
+                        </td>
+                        <td class="px-2 py-2.5 font-semibold text-primary">@item.Price</td>
+                        <td class="px-2 py-2.5 text-muted-foreground">
+                            @if (!string.IsNullOrEmpty(item.Lt) || !string.IsNullOrEmpty(item.Lb))
+                            {
+                                <span>@(string.IsNullOrEmpty(item.Lt) ? "-" : item.Lt) / @(string.IsNullOrEmpty(item.Lb) ? "-" : item.Lb)</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted-foreground/40">—</span>
+                            }
+                        </td>
+                        <td class="px-2 py-2.5 text-right">
+                            <button type="button"
+                                    @onclick:stopPropagation
+                                    @onclick="() => RemoveFromSession(session.Id, item.Url)"
+                                    class="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                    aria-label="Hapus properti">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" class="size-3.5">
+                                    <path d="M3 6h18" />
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+
+                    @* --- Collapsible detail row --- *@
+                    <tr class="@(isOpen ? "" : "hidden")">
+                        <td colspan="6" class="bg-muted/5 p-0">
+                            <div class="border-t border-dashed px-4 py-3">
+                                <div class="@(string.IsNullOrEmpty(item.ImageUrl) ? "" : "md:grid md:grid-cols-3") gap-4">
+                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    {
+                                        <div class="mb-3 md:mb-0">
+                                            <img src="@item.ImageUrl" alt="@item.Title"
+                                                 class="w-full rounded-lg border object-cover shadow-xs"
+                                                 style="max-height: 360px;" loading="lazy" />
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <DetailFields Listing="item" />
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div>
+                                            <DetailFields Listing="item" />
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+
+            @if (index == 0)
+            {
+                <tr>
+                    <td colspan="6" class="px-3 py-12 text-center text-muted-foreground">
+                        <span class="text-2xl">📭</span>
+                        <p class="mt-2 text-sm">Belum ada properti tersimpan</p>
+                        <p class="mt-1 text-[0.6rem] text-muted-foreground/60">Centang properti lalu klik Simpan</p>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Service.TotalListings > 0)
+    {
+        <div class="flex items-center justify-between border-t px-3 py-2">
+            <span class="text-[0.6rem] text-muted-foreground">
+                @Service.TotalListings properti dalam @Service.Sessions.Count grup
+            </span>
+            <Button Variant="outline" Size="sm" OnClick="HandleClearAll" Class="gap-1.5 text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" class="size-3">
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+                Hapus Semua (@Service.TotalListings)
+            </Button>
+        </div>
+    }
+</div>
+
+@code {
+    [Inject]
+    private SavedSessionsService Service { get; set; } = default!;
+
+    private Action? _handler;
+    private readonly HashSet<string> _openRows = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Service.InitializeAsync();
+            _handler = () => InvokeAsync(StateHasChanged);
+            Service.OnChange += _handler;
+        }
+    }
+
+    private void ToggleRow(string rowId)
+    {
+        if (!_openRows.Remove(rowId))
+            _openRows.Add(rowId);
+    }
+
+    private void HandleKeydown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e, string rowId)
+    {
+        if (e.Key is "Enter" or " ")
+            ToggleRow(rowId);
+    }
+
+    private async Task RemoveFromSession(string sessionId, string url)
+    {
+        await Service.RemoveFromSessionAsync(sessionId, url);
+    }
+
+    private async Task HandleClearAll()
+    {
+        await Service.ClearAllAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handler is not null)
+            Service.OnChange -= _handler;
+        await Service.DisposeAsync();
+    }
+}
