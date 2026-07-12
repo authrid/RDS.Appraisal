@@ -28,6 +28,36 @@ public sealed class AppraisalRepository(AppraisalDbContext dbContext) : IApprais
                 x.Location.ToLower().Contains(search));
         }
 
+        if (!string.IsNullOrWhiteSpace(query.ApplicationNumber))
+        {
+            var applicationNumber = query.ApplicationNumber.Trim().ToLowerInvariant();
+            baseQuery = baseQuery.Where(x => x.ApplicationNumber.ToLower().Contains(applicationNumber));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.DebtorName))
+        {
+            var debtorName = query.DebtorName.Trim().ToLowerInvariant();
+            baseQuery = baseQuery.Where(x => x.DebtorName.ToLower().Contains(debtorName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.CollateralSubtype))
+        {
+            var collateralSubtype = query.CollateralSubtype.Trim().ToLowerInvariant();
+            baseQuery = baseQuery.Where(x => x.CollateralSubtype.ToLower().Contains(collateralSubtype));
+        }
+
+        if (query.ApplicationDateFromUtc.HasValue)
+        {
+            var fromDate = query.ApplicationDateFromUtc.Value.Date;
+            baseQuery = baseQuery.Where(x => x.ApplicationDateUtc.HasValue && x.ApplicationDateUtc.Value >= fromDate);
+        }
+
+        if (query.ApplicationDateToUtc.HasValue)
+        {
+            var toDate = query.ApplicationDateToUtc.Value.Date.AddDays(1);
+            baseQuery = baseQuery.Where(x => x.ApplicationDateUtc.HasValue && x.ApplicationDateUtc.Value < toDate);
+        }
+
         if (query.Status.HasValue)
         {
             baseQuery = baseQuery.Where(x => x.Status == query.Status.Value);

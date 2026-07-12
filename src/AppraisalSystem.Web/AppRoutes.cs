@@ -38,6 +38,50 @@ public static class AppRoutes
     public static class Inquiry
     {
         public const string Main = "/inquiry";
+
+        public static string Detail(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? Main
+                : $"/inquiry/{normalized}";
+        }
+
+        public static string MemoByPublicId(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? $"{Main}/memo"
+                : $"/inquiry/{normalized}/memo";
+        }
+
+        public static string HistoryByPublicId(string publicId)
+        {
+            var normalized = TryNormalizePublicId(publicId);
+            return string.IsNullOrWhiteSpace(normalized)
+                ? $"{Main}/history"
+                : $"/inquiry/{normalized}/history";
+        }
+
+        private static string? TryNormalizePublicId(string? publicId)
+        {
+            if (!Guid.TryParse(publicId, out var parsed))
+            {
+                return null;
+            }
+
+            return parsed.ToString("D");
+        }
+    }
+
+    public static string WithReadonly(string route, bool isReadonly)
+    {
+        if (!isReadonly)
+        {
+            return route;
+        }
+
+        return route.Contains('?', StringComparison.Ordinal) ? $"{route}&readonly=true" : $"{route}?readonly=true";
     }
 
     public static class PencarianData

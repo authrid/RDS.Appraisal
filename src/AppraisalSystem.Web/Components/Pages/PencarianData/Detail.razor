@@ -1,4 +1,5 @@
 @page "/pencarian-data/{PublicId:guid}"
+@page "/inquiry/{PublicId:guid}"
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject NavigationManager NavigationManager
@@ -217,7 +218,7 @@
             </AuthorizeView> *@
 
             <div class="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
-                <BaseLinkButton Href="@AppRoutes.PencarianData.Main" Variant="secondary-muted" Size="lg" Class="w-full sm:w-auto">
+                <BaseLinkButton Href="@GetBackHref()" Variant="secondary-muted" Size="lg" Class="w-full sm:w-auto">
                     <span class="inline-flex items-center gap-2">
                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                             <path d="M8 5l-5 5 5 5"></path>
@@ -230,7 +231,7 @@
                 <AuthorizeView Roles="Supervisor,Admin">
                 @if (_detail.Status == AppraisalStatus.Submitted)
                 {
-                    <BaseButton Variant="danger" Size="lg" Class="w-full sm:w-auto" OnClick="OpenApproveDialogAsync">
+                    <BaseButton Variant="danger" Size="lg" Class="w-full sm:w-auto" Disabled="ReadOnlyMode" OnClick="OpenApproveDialogAsync">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                 <path d="M4 10.5l3.5 3.5L16 5.5"></path>
@@ -238,7 +239,7 @@
                             <span>Sendback</span>
                         </span>
                     </BaseButton>
-                    <BaseButton Variant="success" Size="lg" Class="w-full sm:w-auto" OnClick="OpenRejectDialogAsync">
+                    <BaseButton Variant="success" Size="lg" Class="w-full sm:w-auto" Disabled="ReadOnlyMode" OnClick="OpenRejectDialogAsync">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                 <path d="M5.5 5.5l9 9"></path>
@@ -252,7 +253,7 @@
                 <AuthorizeView Roles="Appraiser,Admin">
                     @if (CanEditCurrentAppraisal)
                     {
-                        <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(PublicId.ToString("D"))" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                        <BaseLinkButton Href="@GetEditHref()" Variant="brand" Size="lg" Class="w-full sm:w-auto" Disabled="ReadOnlyMode">
                             <span class="inline-flex items-center gap-2">
                                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                     <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5z"></path>
@@ -265,7 +266,7 @@
                 </AuthorizeView>
                 @if (CanSubmitCurrentAppraisal)
                 {
-                    <BaseButton Variant="brand" Size="lg" Class="w-full sm:w-auto" OnClick="SubmitAsync">
+                    <BaseButton Variant="brand" Size="lg" Class="w-full sm:w-auto" Disabled="ReadOnlyMode" OnClick="SubmitAsync">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                 <path d="M3 10l13-6-3 12-4-4-6-2z"></path>
@@ -335,6 +336,7 @@
 
 @code {
     [Parameter] public Guid PublicId { get; set; }
+    [SupplyParameterFromQuery(Name = "readonly")] public bool ReadOnlyQueryMode { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private bool _isLoading = true;
@@ -351,10 +353,16 @@
     private bool _isSupervisorOrAdmin;
     private bool _isAppraiserOrAdmin;
 
-    private bool CanEditCurrentAppraisal => _detail is not null
+    private bool IsInquiryRoute => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("inquiry/", StringComparison.OrdinalIgnoreCase);
+
+    private bool ReadOnlyMode => IsInquiryRoute || ReadOnlyQueryMode;
+
+    private bool CanEditCurrentAppraisal => !ReadOnlyMode
+        && _detail is not null
         && (_detail.Status == AppraisalStatus.Submitted ? _isSupervisorOrAdmin : _isAppraiserOrAdmin);
 
-    private bool CanSubmitCurrentAppraisal => _detail is not null
+    private bool CanSubmitCurrentAppraisal => !ReadOnlyMode
+        && _detail is not null
         && _detail.Status == AppraisalStatus.Draft
         && _isAppraiserOrAdmin;
 
@@ -407,7 +415,7 @@
 
         if (_detail is null)
         {
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(IsInquiryRoute ? AppRoutes.Inquiry.Main : AppRoutes.PencarianData.Main));
         }
     }
 
@@ -458,6 +466,10 @@
         await CloseDialogs();
         NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.ToString("D"))), forceLoad: true);
     }
+
+    private string GetBackHref() => IsInquiryRoute ? AppRoutes.Inquiry.Main : AppRoutes.PencarianData.Main;
+
+    private string GetEditHref() => AppRoutes.PencarianData.Edit(PublicId.ToString("D"));
 
     private string ResolveActorName()
     {

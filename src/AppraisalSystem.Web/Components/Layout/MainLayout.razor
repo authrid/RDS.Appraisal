@@ -122,9 +122,16 @@
     }
 
     private string? SelectedWorkspacePublicId => ResolveSelectedWorkspacePublicId();
+    private bool IsInquiryWorkspace => IsInquiryWorkspaceRoute();
+    private bool IsReadonlyWorkspace => IsInquiryWorkspace || HasReadonlyQueryParameter();
 
     private SecondarySidebarConfig? ResolveSecondarySidebar()
     {
+        if (ResolveInquirySidebarItems() is { Count: > 0 } inquiryItems)
+        {
+            return new SecondarySidebarConfig("", "Inquiry", inquiryItems);
+        }
+
         if (ResolvePencarianDataSidebarItems() is { Count: > 0 } pencarianDataItems)
         {
             return new SecondarySidebarConfig("", "Pencarian Data", pencarianDataItems);
@@ -214,7 +221,7 @@
             return [];
         }
 
-        if (!AppRoutes.PencarianData.IsModuleSegment(segments[0]) || string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
+        if ((!AppRoutes.PencarianData.IsModuleSegment(segments[0]) && !string.Equals(segments[0], AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase)) || string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
         {
             return [];
         }
@@ -344,9 +351,17 @@
             : absolutePath;
     }
 
-    private IReadOnlyList<SecondarySidebarItem>? ResolvePencarianDataSidebarItems()
+    private bool IsInquiryWorkspaceRoute()
     {
-        if (string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
+        var segments = CurrentRoute.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return segments.Length >= 2
+            && string.Equals(segments[0], AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase)
+            && TryNormalizePublicId(segments[1]) is not null;
+    }
+
+    private IReadOnlyList<SecondarySidebarItem>? ResolveInquirySidebarItems()
+    {
+        if (!IsInquiryWorkspace || string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
         {
             return null;
         }
@@ -357,15 +372,41 @@
         [
             new SecondarySidebarItem(
                 title: "Main",
-                href: AppRoutes.PencarianData.Detail(selectedPublicId),
+                href: AppRoutes.Inquiry.Detail(selectedPublicId),
                 match: NavLinkMatch.All,
                 children:
                 [
                     new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false),
                     new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false)
                 ]),
-            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoByPublicId(selectedPublicId), NavLinkMatch.All),
-            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryByPublicId(selectedPublicId), NavLinkMatch.All)
+            new SecondarySidebarItem("Memo", AppRoutes.Inquiry.MemoByPublicId(selectedPublicId), NavLinkMatch.All),
+            new SecondarySidebarItem("History", AppRoutes.Inquiry.HistoryByPublicId(selectedPublicId), NavLinkMatch.All)
+        ];
+    }
+
+    private IReadOnlyList<SecondarySidebarItem>? ResolvePencarianDataSidebarItems()
+    {
+        if (IsInquiryWorkspace || string.IsNullOrWhiteSpace(SelectedWorkspacePublicId))
+        {
+            return null;
+        }
+
+        var selectedPublicId = SelectedWorkspacePublicId;
+        var readonlySuffix = IsReadonlyWorkspace ? "?readonly=true" : string.Empty;
+
+        return
+        [
+            new SecondarySidebarItem(
+                title: "Main",
+                href: AppRoutes.PencarianData.Detail(selectedPublicId) + readonlySuffix,
+                match: NavLinkMatch.All,
+                children:
+                [
+                    new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false),
+                    new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false)
+                ]),
+            new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoByPublicId(selectedPublicId) + readonlySuffix, NavLinkMatch.All),
+            new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryByPublicId(selectedPublicId) + readonlySuffix, NavLinkMatch.All)
         ];
     }
 
@@ -378,6 +419,20 @@
             && TryNormalizePublicId(segments[1]) is { } routePublicId)
         {
             return routePublicId;
+        }
+
+        if (segments.Length >= 2
+            && string.Equals(segments[0], AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase)
+            && TryNormalizePublicId(segments[1]) is { } inquiryPublicId)
+        {
+            return inquiryPublicId;
+        }
+
+        if (segments.Length == 2
+            && string.Equals(segments[0], AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(segments[1], "memo", StringComparison.OrdinalIgnoreCase) || string.Equals(segments[1], "history", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TryGetSelectedPublicIdFromQuery();
         }
 
         if (segments.Length == 2
@@ -421,6 +476,30 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed checking selectedPublicId key from {Uri}", CurrentUri);
+            return false;
+        }
+    }
+
+    private bool HasReadonlyQueryParameter()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentUri.Query))
+        {
+            return false;
+        }
+
+        try
+        {
+            var query = QueryHelpers.ParseQuery(CurrentUri.Query);
+            if (!query.TryGetValue("readonly", out var readonlyValues))
+            {
+                return false;
+            }
+
+            return bool.TryParse(readonlyValues.FirstOrDefault(), out var isReadonly) && isReadonly;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed parsing readonly query from {Uri}", CurrentUri);
             return false;
         }
     }

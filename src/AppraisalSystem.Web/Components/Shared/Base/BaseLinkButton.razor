@@ -1,16 +1,26 @@
 @inject NavigationManager NavigationManager
 
-<a href="@ResolvedHref"
-   class="@BuildClass()"
-   @attributes="AdditionalAttributes">
-    @ChildContent
-</a>
+@if (Disabled)
+{
+    <span class="@BuildClass()" aria-disabled="true" tabindex="-1" @attributes="AdditionalAttributes">
+        @ChildContent
+    </span>
+}
+else
+{
+    <a href="@ResolvedHref"
+       class="@BuildClass()"
+       @attributes="AdditionalAttributes">
+        @ChildContent
+    </a>
+}
 
 @code {
     [Parameter] public required string Href { get; set; }
     [Parameter] public string Variant { get; set; } = "primary";
     [Parameter] public string Size { get; set; } = "md";
     [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public bool Disabled { get; set; }
     [Parameter] public required RenderFragment ChildContent { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
@@ -44,6 +54,11 @@
         if (!string.IsNullOrWhiteSpace(Class))
         {
             classes.Add(Class);
+        }
+
+        if (Disabled)
+        {
+            classes.Add("cursor-not-allowed opacity-50 pointer-events-none");
         }
 
         return string.Join(" ", classes);

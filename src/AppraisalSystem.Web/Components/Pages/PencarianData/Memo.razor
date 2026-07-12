@@ -1,5 +1,7 @@
 @page "/pencarian-data/{PublicId:guid}/memo"
 @page "/pencarian-data/memo"
+@page "/inquiry/{PublicId:guid}/memo"
+@page "/inquiry/memo"
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject NavigationManager NavigationManager
@@ -50,19 +52,22 @@
                             <span>Refresh</span>
                         </span>
                     </BaseButton>
-                    <BaseButton Variant="brand" Size="sm" OnClick="ToggleAddFormAsync">
-                        <span class="inline-flex items-center gap-2">
-                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path d="M10 4v12"></path>
-                                <path d="M4 10h12"></path>
-                            </svg>
-                            <span>Add New</span>
-                        </span>
-                    </BaseButton>
+                    @if (!ReadOnlyMode)
+                    {
+                        <BaseButton Variant="brand" Size="sm" OnClick="ToggleAddFormAsync">
+                            <span class="inline-flex items-center gap-2">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M10 4v12"></path>
+                                    <path d="M4 10h12"></path>
+                                </svg>
+                                <span>Add New</span>
+                            </span>
+                        </BaseButton>
+                    }
                 </div>
             </RightContent>
             <ChildContent>
-                @if (_showAddForm)
+                @if (_showAddForm && !ReadOnlyMode)
                 {
                     <div class="mb-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                         <div class="mb-3 rounded-xl border border-slate-200 bg-white/75 p-3 text-sm text-slate-600">
@@ -76,7 +81,7 @@
                             <BaseTextAreaField Id="memoNote" Label="Isi Memo" @bind-Value="_newMemoContent" UpdateOnInput="true" InputClass="min-h-24" Placeholder="Tulis memo untuk pengajuan terpilih..." />
 
                             <div class="mb-1 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                                <BaseButton Variant="secondary-muted" Size="sm" Class="w-full sm:w-auto" OnClick="CancelAddAsync">
+                                <BaseButton Variant="secondary" Size="sm" Class="w-full sm:w-auto" OnClick="CancelAddAsync">
                                     <span class="inline-flex items-center gap-2">
                                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                             <path d="M5 5l10 10"></path>
@@ -85,7 +90,7 @@
                                         <span>Batal</span>
                                     </span>
                                 </BaseButton>
-                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="SaveNewMemoAsync" Disabled="@(string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent) || _isSaving)">
+                                <BaseButton Variant="brand" Size="sm" Class="w-full sm:w-auto" OnClick="SaveNewMemoAsync" Disabled="@(ReadOnlyMode || string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent) || _isSaving)">
                                     <span class="inline-flex items-center gap-2">
                                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                             <path d="M4.5 10.5l3.2 3.2 7.8-7.8"></path>
@@ -125,6 +130,7 @@
 @code {
     [Parameter] public Guid? PublicId { get; set; }
     [SupplyParameterFromQuery(Name = "selectedPublicId")] public Guid? SelectedPublicId { get; set; }
+    [SupplyParameterFromQuery(Name = "readonly")] public bool ReadOnlyQueryMode { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
@@ -138,12 +144,20 @@
     private string _feedbackMessage = string.Empty;
     private string _feedbackVariant = "info";
 
+    private bool IsInquiryRoute => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("inquiry/", StringComparison.OrdinalIgnoreCase);
+    private bool ReadOnlyMode => IsInquiryRoute || ReadOnlyQueryMode;
+
     protected override Task OnInitializedAsync() => RefreshListCoreAsync();
 
     private Task RefreshListAsync(MouseEventArgs _) => RefreshListCoreAsync();
 
     private Task ToggleAddFormAsync(MouseEventArgs _)
     {
+        if (ReadOnlyMode)
+        {
+            return Task.CompletedTask;
+        }
+
         _showAddForm = !_showAddForm;
         if (!_showAddForm)
         {
@@ -164,7 +178,9 @@
     {
         if (!PublicId.HasValue && SelectedPublicId.HasValue)
         {
-            var canonicalUrl = NavigationManager.ToAppPath(AppRoutes.PencarianData.MemoByPublicId(SelectedPublicId.Value.ToString("D")));
+            var canonicalUrl = NavigationManager.ToAppPath(IsInquiryRoute
+                ? AppRoutes.Inquiry.MemoByPublicId(SelectedPublicId.Value.ToString("D"))
+                : AppRoutes.PencarianData.MemoByPublicId(SelectedPublicId.Value.ToString("D")));
             NavigationManager.NavigateTo(canonicalUrl, replace: true);
             return;
         }
@@ -175,6 +191,12 @@
         {
             _selectedPublicId = normalizedSelectedPublicId;
             await RefreshListCoreAsync();
+        }
+
+        if (ReadOnlyMode)
+        {
+            _showAddForm = false;
+            _newMemoContent = string.Empty;
         }
     }
 
@@ -233,7 +255,7 @@
 
     private async Task SaveNewMemoAsync(MouseEventArgs _)
     {
-        if (string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent))
+        if (ReadOnlyMode || string.IsNullOrWhiteSpace(_selectedPublicId) || string.IsNullOrWhiteSpace(_newMemoContent))
         {
             return;
         }
