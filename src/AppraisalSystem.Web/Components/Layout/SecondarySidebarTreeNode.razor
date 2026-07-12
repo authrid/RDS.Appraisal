@@ -37,9 +37,9 @@
         {
             <ul class="relative mt-1 space-y-1"
                 style="@BuildChildOffsetStyle(Depth)">
-                @for (var index = 0; index < Item.Children.Count; index++)
+                @for (var index = 0; index < Item.VisibleChildren.Count; index++)
                 {
-                    var child = Item.Children[index];
+                    var child = Item.VisibleChildren[index];
                     var childKey = $"{NodeKey}/{index}";
 
                     <SecondarySidebarTreeNode Item="child"

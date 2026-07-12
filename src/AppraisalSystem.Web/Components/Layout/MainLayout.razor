@@ -361,8 +361,8 @@
                 match: NavLinkMatch.All,
                 children:
                 [
-                    new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All),
-                    new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All)
+                    new SecondarySidebarItem("Menu 1", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false),
+                    new SecondarySidebarItem("Menu 2", AppRoutes.Account.NotFound, NavLinkMatch.All, isVisible: false)
                 ]),
             new SecondarySidebarItem("Memo", AppRoutes.PencarianData.MemoByPublicId(selectedPublicId), NavLinkMatch.All),
             new SecondarySidebarItem("History", AppRoutes.PencarianData.HistoryByPublicId(selectedPublicId), NavLinkMatch.All)

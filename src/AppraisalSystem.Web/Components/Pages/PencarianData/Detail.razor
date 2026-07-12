@@ -419,7 +419,7 @@
         }
 
         await AppraisalService.SubmitAsync(_detail!.Id, ResolveActorName());
-        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId.ToString("D"))), forceLoad: true);
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Main));
     }
 
     private void OpenApproveDialog() => _showApproveDialog = true;

@@ -11,9 +11,11 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
     private const string ApprovalMapKey = "rds-approval-map";
 
     private Task<IJSObjectReference>? _module;
+    private DotNetObjectReference<SavedSessionsService>? _dotNetRef;
     private List<SavedSession> _sessions = new();
     private HashSet<string> _knownIds = new();
     private bool _skipStorageLoad;
+    private bool _disposed;
 
     public event Action? OnChange;
 
@@ -26,6 +28,11 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     public async Task InitializeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (_skipStorageLoad)
         {
             _skipStorageLoad = false;
@@ -35,10 +42,22 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
             await LoadFromStorageAsync();
         }
 
-        _module = js.InvokeAsync<IJSObjectReference>("import", "./js/saved-sessions.js").AsTask();
-        var module = await _module;
-        var dotnetRef = DotNetObjectReference.Create(this);
-        await module.InvokeVoidAsync("listenStorage", IndexKey, dotnetRef);
+        try
+        {
+            _module = js.InvokeAsync<IJSObjectReference>("import", "./js/saved-sessions.js").AsTask();
+            var module = await _module;
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("listenStorage", IndexKey, _dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected before JS module/listener initialized.
+        }
+        catch (ObjectDisposedException)
+        {
+            // JS runtime already disposed.
+        }
+
         Notify();
     }
 
@@ -103,7 +122,20 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     private async Task LoadFromStorageAsync()
     {
-        var indexJson = await js.InvokeAsync<string?>("localStorage.getItem", IndexKey);
+        string? indexJson;
+        try
+        {
+            indexJson = await js.InvokeAsync<string?>("localStorage.getItem", IndexKey);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         List<string> ids;
         try { ids = !string.IsNullOrEmpty(indexJson)
                 ? JsonSerializer.Deserialize<List<string>>(indexJson, JsonOptions) ?? new()
@@ -115,7 +147,20 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
         var loaded = new List<SavedSession>();
         foreach (var id in ids)
         {
-            var raw = await js.InvokeAsync<string?>("localStorage.getItem", SessionKey(id));
+            string? raw;
+            try
+            {
+                raw = await js.InvokeAsync<string?>("localStorage.getItem", SessionKey(id));
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+
             if (string.IsNullOrEmpty(raw)) continue;
             try
             {
@@ -135,18 +180,53 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
         // Remove stale keys from localStorage
         foreach (var stale in _knownIds.Except(currentIds))
-            await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(stale));
+        {
+            try
+            {
+                await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(stale));
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
 
         // Save each session under its own key
         foreach (var session in _sessions)
         {
             var raw = JsonSerializer.Serialize(session, JsonOptions);
-            await js.InvokeVoidAsync("localStorage.setItem", SessionKey(session.Id), raw);
+            try
+            {
+                await js.InvokeVoidAsync("localStorage.setItem", SessionKey(session.Id), raw);
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
         }
 
         // Update index with current session IDs
         var indexJson = JsonSerializer.Serialize(_sessions.Select(s => s.Id).ToList(), JsonOptions);
-        await js.InvokeVoidAsync("localStorage.setItem", IndexKey, indexJson);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.setItem", IndexKey, indexJson);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
 
         _knownIds = currentIds;
         Notify();
@@ -211,12 +291,36 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
     public async Task SaveApprovalMapAsync(Dictionary<string, int> map)
     {
         var json = JsonSerializer.Serialize(map, JsonOptions);
-        await js.InvokeVoidAsync("localStorage.setItem", ApprovalMapKey, json);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.setItem", ApprovalMapKey, json);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
     }
 
     public async Task<Dictionary<string, int>> LoadApprovalMapAsync()
     {
-        var json = await js.InvokeAsync<string?>("localStorage.getItem", ApprovalMapKey);
+        string? json;
+        try
+        {
+            json = await js.InvokeAsync<string?>("localStorage.getItem", ApprovalMapKey);
+        }
+        catch (JSDisconnectedException)
+        {
+            return new();
+        }
+        catch (ObjectDisposedException)
+        {
+            return new();
+        }
+
         if (string.IsNullOrEmpty(json) || json == "{}")
             return new();
         try { return JsonSerializer.Deserialize<Dictionary<string, int>>(json, JsonOptions) ?? new(); }
@@ -228,14 +332,50 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
         // Simpan state saat ini (misal approval status) ke localStorage tanpa hapus data
         var currentIds = _sessions.Select(s => s.Id).ToHashSet();
         foreach (var stale in _knownIds.Except(currentIds))
-            await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(stale));
+        {
+            try
+            {
+                await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(stale));
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
         foreach (var session in _sessions)
         {
             var raw = JsonSerializer.Serialize(session, JsonOptions);
-            await js.InvokeVoidAsync("localStorage.setItem", SessionKey(session.Id), raw);
+            try
+            {
+                await js.InvokeVoidAsync("localStorage.setItem", SessionKey(session.Id), raw);
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
         }
         var indexJson = JsonSerializer.Serialize(_sessions.Select(s => s.Id).ToList(), JsonOptions);
-        await js.InvokeVoidAsync("localStorage.setItem", IndexKey, indexJson);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.setItem", IndexKey, indexJson);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         _knownIds = currentIds;
         Notify();
     }
@@ -244,9 +384,34 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
     {
         // Remove all session keys
         foreach (var id in _knownIds)
-            await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(id));
+        {
+            try
+            {
+                await js.InvokeVoidAsync("localStorage.removeItem", SessionKey(id));
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
         // Remove index
-        await js.InvokeVoidAsync("localStorage.removeItem", IndexKey);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.removeItem", IndexKey);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         _sessions.Clear();
         _knownIds.Clear();
         LastOcrAddress = null;
@@ -258,10 +423,30 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
+
         if (_module is not null)
         {
-            var module = await _module;
-            await module.DisposeAsync();
+            try
+            {
+                var module = await _module;
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected before module cleanup.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Runtime/module already disposed.
+            }
         }
     }
 

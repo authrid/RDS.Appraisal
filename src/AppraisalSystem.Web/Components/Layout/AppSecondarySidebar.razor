@@ -52,18 +52,19 @@
 
     private void SyncExpandedKeys()
     {
-        var availableKeys = EnumerateKeys(Items).ToHashSet(StringComparer.Ordinal);
+        var visibleItems = GetVisibleItems(Items);
+        var availableKeys = EnumerateKeys(visibleItems).ToHashSet(StringComparer.Ordinal);
         _expandedKeys.RemoveWhere(x => !availableKeys.Contains(x));
 
-        var activeBranchKeys = ResolveActiveBranchKeys(Items).ToHashSet(StringComparer.Ordinal);
+        var activeBranchKeys = ResolveActiveBranchKeys(visibleItems).ToHashSet(StringComparer.Ordinal);
         foreach (var key in activeBranchKeys)
         {
             _expandedKeys.Add(key);
         }
 
-        for (var index = 0; index < Items.Count; index++)
+        for (var index = 0; index < visibleItems.Count; index++)
         {
-            var item = Items[index];
+            var item = visibleItems[index];
             if (!item.HasChildren)
             {
                 continue;
@@ -126,6 +127,9 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private static IReadOnlyList<SecondarySidebarItem> GetVisibleItems(IReadOnlyList<SecondarySidebarItem> items)
+        => items.Where(x => x.IsVisible).ToList();
+
     private IEnumerable<string> EnumerateKeys(IReadOnlyList<SecondarySidebarItem> nodes, string parentKey = "")
     {
         for (var index = 0; index < nodes.Count; index++)
@@ -133,7 +137,7 @@
             var key = string.IsNullOrWhiteSpace(parentKey) ? index.ToString() : $"{parentKey}/{index}";
             yield return key;
 
-            foreach (var childKey in EnumerateKeys(nodes[index].Children, key))
+            foreach (var childKey in EnumerateKeys(nodes[index].VisibleChildren, key))
             {
                 yield return childKey;
             }
@@ -160,9 +164,9 @@
         keys = [];
         var hasActiveChild = false;
 
-        for (var index = 0; index < node.Children.Count; index++)
+        for (var index = 0; index < node.VisibleChildren.Count; index++)
         {
-            var child = node.Children[index];
+            var child = node.VisibleChildren[index];
             var childKey = $"{key}/{index}";
 
             if (!CollectActiveBranchKeys(child, childKey, out var childKeys))
