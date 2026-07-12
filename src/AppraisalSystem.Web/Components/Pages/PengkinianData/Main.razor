@@ -54,11 +54,11 @@
                 <BaseTextField Id="debtorName" Label="Nama" @bind-Value="_debtorName" Placeholder="Masukkan nama debitur" />
 
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <BaseFormInput Id="applicationDateFrom" Label="Tanggal Dari">
+                    <BaseFormInput Id="applicationDateFrom" Label="Tanggal Mulai">
                         <InputDate TValue="DateTime?" id="applicationDateFrom" @bind-Value="_applicationDateFrom" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" />
                     </BaseFormInput>
 
-                    <BaseFormInput Id="applicationDateTo" Label="Tanggal Sampai">
+                    <BaseFormInput Id="applicationDateTo" Label="Tanggal Akhir">
                         <InputDate TValue="DateTime?" id="applicationDateTo" @bind-Value="_applicationDateTo" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" />
                     </BaseFormInput>
                 </div>
@@ -103,11 +103,11 @@
                     }
                     @if (_applicationDateFrom.HasValue)
                     {
-                        <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Dari: @DisplayDate(_applicationDateFrom)</span>
+                        <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Mulai: @DisplayDate(_applicationDateFrom)</span>
                     }
                     @if (_applicationDateTo.HasValue)
                     {
-                        <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Sampai: @DisplayDate(_applicationDateTo)</span>
+                        <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Akhir: @DisplayDate(_applicationDateTo)</span>
                     }
                 </div>
             }

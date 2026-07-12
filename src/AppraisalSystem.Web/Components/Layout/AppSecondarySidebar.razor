@@ -2,11 +2,30 @@
 
 <aside class="@SidebarClass" style="@SidebarStyle">
     <div class="border-b pb-4" style="border-color: color-mix(in srgb, var(--theme-panel-border) 86%, #ffffff);">
-        @if (!string.IsNullOrWhiteSpace(SectionLabel))
-        {
-            <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em]" style="color: var(--theme-text-muted);">@SectionLabel</p>
-        }
-        <h2 class="mt-1 mb-0 text-base font-bold" style="color: var(--theme-text-strong);">@Title</h2>
+        <div class="flex items-start gap-2">
+            @if (!string.IsNullOrWhiteSpace(BackHref))
+            {
+                <button type="button"
+                        class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-transparent transition hover:bg-slate-50"
+                        style="color: var(--theme-text-default); background: transparent;"
+                        title="@ResolvedBackAriaLabel"
+                        aria-label="@ResolvedBackAriaLabel"
+                        @onclick="NavigateBackAsync">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M12.5 5L7.5 10l5 5"></path>
+                        <path d="M8 10h8"></path>
+                    </svg>
+                </button>
+            }
+
+            <div class="min-w-0 flex-1">
+                @if (!string.IsNullOrWhiteSpace(SectionLabel))
+                {
+                    <p class="mb-0 text-[11px] font-extrabold uppercase tracking-[0.12em]" style="color: var(--theme-text-muted);">@SectionLabel</p>
+                }
+                <h2 class="mt-1 mb-0 text-base font-bold" style="color: var(--theme-text-strong);">@Title</h2>
+            </div>
+        </div>
     </div>
 
     <nav class="mt-4 min-h-0 flex-1 overflow-y-auto pr-0.5 sidebar-scroll-smooth">
@@ -35,10 +54,27 @@
     [Parameter] public bool OffsetForPrimaryCompact { get; set; }
     [Parameter] public string SectionLabel { get; set; } = "#";
     [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string BackHref { get; set; } = string.Empty;
+    [Parameter] public string BackAriaLabel { get; set; } = string.Empty;
     [Parameter] public IReadOnlyList<SecondarySidebarItem> Items { get; set; } = [];
 
     private HashSet<string> _expandedKeys = [];
     private string? _pendingOpenKey;
+
+    private string ResolvedBackAriaLabel => string.IsNullOrWhiteSpace(BackAriaLabel)
+        ? "Kembali ke menu utama"
+        : BackAriaLabel;
+
+    private Task NavigateBackAsync()
+    {
+        if (string.IsNullOrWhiteSpace(BackHref))
+        {
+            return Task.CompletedTask;
+        }
+
+        NavigationManager.NavigateTo(NavigationManager.ToAppPath(BackHref));
+        return Task.CompletedTask;
+    }
 
     protected override void OnInitialized()
     {

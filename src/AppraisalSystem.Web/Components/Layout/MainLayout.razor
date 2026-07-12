@@ -13,6 +13,8 @@
                                  OffsetForPrimaryCompact="true"
                                  SectionLabel="@(secondarySidebar?.SectionLabel ?? string.Empty)"
                                  Title="@(secondarySidebar?.Title ?? string.Empty)"
+                                 BackHref="@(secondarySidebar?.BackHref ?? string.Empty)"
+                                 BackAriaLabel="@(secondarySidebar?.BackAriaLabel ?? string.Empty)"
                                  Items="@(secondarySidebar?.Items ?? [])" />
 
             <main class="@MainPanelClass">
@@ -62,7 +64,12 @@
             ])
     ];
 
-    private sealed record SecondarySidebarConfig(string SectionLabel, string Title, IReadOnlyList<SecondarySidebarItem> Items);
+    private sealed record SecondarySidebarConfig(
+        string SectionLabel,
+        string Title,
+        IReadOnlyList<SecondarySidebarItem> Items,
+        string BackHref,
+        string BackAriaLabel);
 
     private SecondarySidebarConfig? ActiveSecondarySidebar
     {
@@ -129,17 +136,32 @@
     {
         if (ResolveInquirySidebarItems() is { Count: > 0 } inquiryItems)
         {
-            return new SecondarySidebarConfig("", "Inquiry", inquiryItems);
+            return new SecondarySidebarConfig(
+                "",
+                "Inquiry",
+                inquiryItems,
+                AppRoutes.Inquiry.Main,
+                "Kembali ke daftar Inquiry");
         }
 
         if (ResolvePencarianDataSidebarItems() is { Count: > 0 } pencarianDataItems)
         {
-            return new SecondarySidebarConfig("", "Pencarian Data", pencarianDataItems);
+            return new SecondarySidebarConfig(
+                "",
+                "Pencarian Data",
+                pencarianDataItems,
+                AppRoutes.PencarianData.Main,
+                "Kembali ke daftar Pencarian Data");
         }
 
         if (CurrentRoute.StartsWith(AppRoutes.Report.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
         {
-            return new SecondarySidebarConfig("", "Report", ReportItems);
+            return new SecondarySidebarConfig(
+                "",
+                "Report",
+                ReportItems,
+                AppRoutes.Dashboard.Main,
+                "Kembali ke Dashboard");
         }
 
         return null;
