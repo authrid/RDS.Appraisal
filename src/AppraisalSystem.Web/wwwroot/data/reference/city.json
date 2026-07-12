@@ -1,0 +1,40 @@
+[
+  { "code": "Jakarta Pusat", "label": "Jakarta Pusat", "parentCode": "DKI Jakarta", "sortOrder": 1 },
+  { "code": "Jakarta Utara", "label": "Jakarta Utara", "parentCode": "DKI Jakarta", "sortOrder": 2 },
+  { "code": "Jakarta Barat", "label": "Jakarta Barat", "parentCode": "DKI Jakarta", "sortOrder": 3 },
+  { "code": "Jakarta Selatan", "label": "Jakarta Selatan", "parentCode": "DKI Jakarta", "sortOrder": 4 },
+  { "code": "Jakarta Timur", "label": "Jakarta Timur", "parentCode": "DKI Jakarta", "sortOrder": 5 },
+  { "code": "Kepulauan Seribu", "label": "Kepulauan Seribu", "parentCode": "DKI Jakarta", "sortOrder": 6 },
+
+  { "code": "Bandung", "label": "Bandung", "parentCode": "Jawa Barat", "sortOrder": 10 },
+  { "code": "Bekasi", "label": "Bekasi", "parentCode": "Jawa Barat", "sortOrder": 11 },
+  { "code": "Bogor", "label": "Bogor", "parentCode": "Jawa Barat", "sortOrder": 12 },
+  { "code": "Depok", "label": "Depok", "parentCode": "Jawa Barat", "sortOrder": 13 },
+  { "code": "Cimahi", "label": "Cimahi", "parentCode": "Jawa Barat", "sortOrder": 14 },
+  { "code": "Kabupaten Bandung", "label": "Kabupaten Bandung", "parentCode": "Jawa Barat", "sortOrder": 15 },
+  { "code": "Kabupaten Bekasi", "label": "Kabupaten Bekasi", "parentCode": "Jawa Barat", "sortOrder": 16 },
+  { "code": "Kabupaten Bogor", "label": "Kabupaten Bogor", "parentCode": "Jawa Barat", "sortOrder": 17 },
+
+  { "code": "Surabaya", "label": "Surabaya", "parentCode": "Jawa Timur", "sortOrder": 20 },
+  { "code": "Malang", "label": "Malang", "parentCode": "Jawa Timur", "sortOrder": 21 },
+  { "code": "Kediri", "label": "Kediri", "parentCode": "Jawa Timur", "sortOrder": 22 },
+  { "code": "Sidoarjo", "label": "Sidoarjo", "parentCode": "Jawa Timur", "sortOrder": 23 },
+  { "code": "Kabupaten Malang", "label": "Kabupaten Malang", "parentCode": "Jawa Timur", "sortOrder": 24 },
+
+  { "code": "Semarang", "label": "Semarang", "parentCode": "Jawa Tengah", "sortOrder": 30 },
+  { "code": "Surakarta", "label": "Surakarta", "parentCode": "Jawa Tengah", "sortOrder": 31 },
+  { "code": "Magelang", "label": "Magelang", "parentCode": "Jawa Tengah", "sortOrder": 32 },
+
+  { "code": "Yogyakarta", "label": "Yogyakarta", "parentCode": "Daerah Istimewa Yogyakarta", "sortOrder": 40 },
+  { "code": "Kabupaten Sleman", "label": "Kabupaten Sleman", "parentCode": "Daerah Istimewa Yogyakarta", "sortOrder": 41 },
+  { "code": "Kabupaten Bantul", "label": "Kabupaten Bantul", "parentCode": "Daerah Istimewa Yogyakarta", "sortOrder": 42 },
+
+  { "code": "Tangerang", "label": "Tangerang", "parentCode": "Banten", "sortOrder": 50 },
+  { "code": "Tangerang Selatan", "label": "Tangerang Selatan", "parentCode": "Banten", "sortOrder": 51 },
+  { "code": "Serang", "label": "Serang", "parentCode": "Banten", "sortOrder": 52 },
+  { "code": "Cilegon", "label": "Cilegon", "parentCode": "Banten", "sortOrder": 53 },
+
+  { "code": "Medan", "label": "Medan", "parentCode": "Sumatera Utara", "sortOrder": 60 },
+  { "code": "Makassar", "label": "Makassar", "parentCode": "Sulawesi Selatan", "sortOrder": 70 },
+  { "code": "Denpasar", "label": "Denpasar", "parentCode": "Bali", "sortOrder": 80 }
+]

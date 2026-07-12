@@ -1,0 +1,46 @@
+[
+  { "code": "Tebet Barat", "label": "Tebet Barat", "parentCode": "Tebet", "sortOrder": 1 },
+  { "code": "Tebet Timur", "label": "Tebet Timur", "parentCode": "Tebet", "sortOrder": 2 },
+  { "code": "Menteng Dalam", "label": "Menteng Dalam", "parentCode": "Tebet", "sortOrder": 3 },
+  { "code": "Kebon Baru", "label": "Kebon Baru", "parentCode": "Tebet", "sortOrder": 4 },
+
+  { "code": "Kuningan Timur", "label": "Kuningan Timur", "parentCode": "Setiabudi", "sortOrder": 10 },
+  { "code": "Karet", "label": "Karet", "parentCode": "Setiabudi", "sortOrder": 11 },
+  { "code": "Setiabudi", "label": "Setiabudi", "parentCode": "Setiabudi", "sortOrder": 12 },
+  { "code": "Guntur", "label": "Guntur", "parentCode": "Setiabudi", "sortOrder": 13 },
+
+  { "code": "Senayan", "label": "Senayan", "parentCode": "Kebayoran Baru", "sortOrder": 20 },
+  { "code": "Gunung", "label": "Gunung", "parentCode": "Kebayoran Baru", "sortOrder": 21 },
+  { "code": "Melawai", "label": "Melawai", "parentCode": "Kebayoran Baru", "sortOrder": 22 },
+  { "code": "Petogogan", "label": "Petogogan", "parentCode": "Kebayoran Baru", "sortOrder": 23 },
+
+  { "code": "Dago", "label": "Dago", "parentCode": "Coblong", "sortOrder": 30 },
+  { "code": "Lebak Gede", "label": "Lebak Gede", "parentCode": "Coblong", "sortOrder": 31 },
+  { "code": "Lebak Siliwangi", "label": "Lebak Siliwangi", "parentCode": "Coblong", "sortOrder": 32 },
+  { "code": "Sekeloa", "label": "Sekeloa", "parentCode": "Coblong", "sortOrder": 33 },
+
+  { "code": "Pasteur", "label": "Pasteur", "parentCode": "Sukajadi", "sortOrder": 40 },
+  { "code": "Cipedes", "label": "Cipedes", "parentCode": "Sukajadi", "sortOrder": 41 },
+  { "code": "Sukawarna", "label": "Sukawarna", "parentCode": "Sukajadi", "sortOrder": 42 },
+
+  { "code": "Darmo", "label": "Darmo", "parentCode": "Wonokromo", "sortOrder": 50 },
+  { "code": "Jagir", "label": "Jagir", "parentCode": "Wonokromo", "sortOrder": 51 },
+  { "code": "Ngagel", "label": "Ngagel", "parentCode": "Wonokromo", "sortOrder": 52 },
+  { "code": "Ngagelrejo", "label": "Ngagelrejo", "parentCode": "Wonokromo", "sortOrder": 53 },
+
+  { "code": "Airlangga", "label": "Airlangga", "parentCode": "Gubeng", "sortOrder": 60 },
+  { "code": "Pucang Sewu", "label": "Pucang Sewu", "parentCode": "Gubeng", "sortOrder": 61 },
+  { "code": "Kertajaya", "label": "Kertajaya", "parentCode": "Gubeng", "sortOrder": 62 },
+
+  { "code": "Keputih", "label": "Keputih", "parentCode": "Sukolilo", "sortOrder": 70 },
+  { "code": "Gebang Putih", "label": "Gebang Putih", "parentCode": "Sukolilo", "sortOrder": 71 },
+  { "code": "Menur Pumpungan", "label": "Menur Pumpungan", "parentCode": "Sukolilo", "sortOrder": 72 },
+
+  { "code": "Muja Muju", "label": "Muja Muju", "parentCode": "Umbulharjo", "sortOrder": 80 },
+  { "code": "Semaki", "label": "Semaki", "parentCode": "Umbulharjo", "sortOrder": 81 },
+  { "code": "Warungboto", "label": "Warungboto", "parentCode": "Umbulharjo", "sortOrder": 82 },
+
+  { "code": "Lengkong Gudang", "label": "Lengkong Gudang", "parentCode": "Serpong", "sortOrder": 90 },
+  { "code": "Buaran", "label": "Buaran", "parentCode": "Serpong", "sortOrder": 91 },
+  { "code": "Ciater", "label": "Ciater", "parentCode": "Serpong", "sortOrder": 92 }
+]

@@ -103,15 +103,7 @@
 
     private string BrandName => string.IsNullOrWhiteSpace(Theme.BrandName) ? "RDS Appraisal" : Theme.BrandName;
 
-    private IReadOnlyList<SidebarLinkItem> SidebarLinks =>
-    [
-        new SidebarLinkItem("dashboard", "Dashboard", AppRoutes.Dashboard.Main, SidebarIcon.Dashboard, NavLinkMatch.All),
-        new SidebarLinkItem("pencarian-data", "Pencarian Data", AppRoutes.PencarianData.Main, SidebarIcon.Appraisal, NavLinkMatch.Prefix),
-        new SidebarLinkItem("pengkinian-data", "Pengkinian Data", AppRoutes.PengkinianData.Main, SidebarIcon.Updating, NavLinkMatch.All, "Appraiser,Admin"),
-        new SidebarLinkItem("inquiry", "Inquiry", AppRoutes.Inquiry.Main, SidebarIcon.Search, NavLinkMatch.All),
-        new SidebarLinkItem("report", "Report", AppRoutes.Report.Main, SidebarIcon.Report, NavLinkMatch.Prefix),
-        new SidebarLinkItem("theme-preview", "Theme Preview", AppRoutes.SystemPages.ThemePreview, SidebarIcon.Report, NavLinkMatch.All, "Admin")
-    ];
+    private IReadOnlyList<AppMenuItem> SidebarLinks => AppNavigation.PrimaryMenu;
 
     private string SidebarClass => "fixed bottom-3 left-3 top-3 z-40 flex flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_65px_rgba(15,23,42,0.12)] transition-[transform,opacity,width,padding] duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform";
 
@@ -158,23 +150,23 @@
         return new Uri(new Uri(NavigationManager.BaseUri), normalizedPath).ToString();
     }
 
-    private static RenderFragment RenderIcon(SidebarIcon icon) => builder =>
+    private static RenderFragment RenderIcon(AppMenuIcon icon) => builder =>
     {
         switch (icon)
         {
-            case SidebarIcon.Dashboard:
+            case AppMenuIcon.Dashboard:
                 builder.AddMarkupContent(0, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"3.5\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"11\" y=\"3.5\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"3.5\" y=\"11\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect><rect x=\"11\" y=\"11\" width=\"5.5\" height=\"5.5\" rx=\"1.1\"></rect></svg>");
                 break;
-            case SidebarIcon.Appraisal:
+            case AppMenuIcon.Appraisal:
                 builder.AddMarkupContent(1, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M4 4.5h12\"></path><path d=\"M4 8.5h12\"></path><path d=\"M4 12.5h8\"></path><path d=\"M4 16.5h8\"></path></svg>");
                 break;
-            case SidebarIcon.Updating:
+            case AppMenuIcon.Updating:
                 builder.AddMarkupContent(2, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M4.5 10a5.5 5.5 0 0 1 9.42-3.89\"></path><path d=\"M14.5 5.5V8h-2.5\"></path><path d=\"M15.5 10a5.5 5.5 0 0 1-9.42 3.89\"></path><path d=\"M5.5 14.5V12h2.5\"></path></svg>");
                 break;
-            case SidebarIcon.Search:
+            case AppMenuIcon.Search:
                 builder.AddMarkupContent(3, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><circle cx=\"8.5\" cy=\"8.5\" r=\"4.75\"></circle><path d=\"M12 12l4 4\"></path></svg>");
                 break;
-            case SidebarIcon.Report:
+            case AppMenuIcon.Report:
                 builder.AddMarkupContent(4, "<svg class=\"h-4 w-4\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M5 3.5h7l3.5 3.5V16.5H5z\"></path><path d=\"M12 3.5V7h3.5\"></path><path d=\"M7 10.5h6\"></path><path d=\"M7 13.5h6\"></path></svg>");
                 break;
             default:
@@ -182,16 +174,4 @@
                 break;
         }
     };
-
-    private sealed record SidebarLinkItem(string Key, string Title, string Href, SidebarIcon Icon, NavLinkMatch Match, string? Roles = null);
-
-    private enum SidebarIcon
-    {
-        None,
-        Dashboard,
-        Appraisal,
-        Updating,
-        Search,
-        Report
-    }
 }

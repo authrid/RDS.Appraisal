@@ -26,13 +26,15 @@ public static class DbInitializer
 
         var now = DateTime.UtcNow;
 
+        // Nilai reference (Gender, MaritalStatus, CollateralSubtype, dsb) mengacu ke
+        // AppraisalSystem.Web/wwwroot/data/reference/*.json. Kalau JSON berubah, seed harus disesuaikan.
         dbContext.Appraisals.AddRange(
             new Appraisal
             {
                 ApplicationNumber = "CON.20260706.001",
                 Segment = CustomerSegment.Consumer,
                 MakerId = "MKT001",
-                BranchCode = "01010",
+                BranchCode = "001",
                 ApplicationDateUtc = now.AddDays(-6),
                 ApplicantType = ApplicantType.Business,
                 DeedNumber = "AKTA-001",
@@ -63,7 +65,7 @@ public static class DbInitializer
                 ApplicationNumber = "COM.20260706.001",
                 Segment = CustomerSegment.Commercial,
                 MakerId = "MKT002",
-                BranchCode = "01010",
+                BranchCode = "005",
                 ApplicationDateUtc = now.AddDays(-4),
                 ApplicantType = ApplicantType.Business,
                 DeedNumber = "AKTA-123",
@@ -95,13 +97,13 @@ public static class DbInitializer
                 ApplicationNumber = "SME.20260706.001",
                 Segment = CustomerSegment.SME,
                 MakerId = "MKT003",
-                BranchCode = "01010",
+                BranchCode = "006",
                 ApplicationDateUtc = now.AddDays(-2),
                 ApplicantType = ApplicantType.Individual,
                 DateOfBirth = new DateTime(2000, 3, 11),
                 BirthPlace = "Surabaya",
-                Gender = "Male",
-                MaritalStatus = "Single",
+                Gender = "Laki-laki",
+                MaritalStatus = "Belum Menikah",
                 AddressLine1 = "Jl. Raya Darmo No. 7",
                 City = "Surabaya",
                 Province = "Jawa Timur",

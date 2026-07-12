@@ -1,0 +1,46 @@
+@using AppraisalSystem.Application.Common
+@using AppraisalSystem.Domain.Enums
+
+<span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em]"
+      style="border-color: @BorderColor; background: @Background; color: @TextColor;">
+    @Label
+</span>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public ApplicantType? Enum { get; set; }
+
+    private ApplicantType ResolveValue()
+    {
+        if (Enum.HasValue)
+        {
+            return Enum.Value;
+        }
+
+        return System.Enum.TryParse<ApplicantType>(Value, ignoreCase: true, out var parsed)
+            ? parsed
+            : ApplicantType.Unknown;
+    }
+
+    private ApplicantType Parsed => ResolveValue();
+
+    private string Label => Parsed.GetLabel();
+
+    private string BorderColor => Parsed switch
+    {
+        ApplicantType.Business => "var(--brand-primary-soft)",
+        _ => "color-mix(in srgb, var(--theme-panel-border) 85%, #ffffff)"
+    };
+
+    private string Background => Parsed switch
+    {
+        ApplicantType.Business => "color-mix(in srgb, var(--brand-primary) 12%, #ffffff)",
+        _ => "var(--theme-panel-soft-bg)"
+    };
+
+    private string TextColor => Parsed switch
+    {
+        ApplicantType.Business => "var(--brand-primary)",
+        _ => "var(--theme-text-muted)"
+    };
+}

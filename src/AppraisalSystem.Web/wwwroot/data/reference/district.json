@@ -1,0 +1,41 @@
+[
+  { "code": "Tebet", "label": "Tebet", "parentCode": "Jakarta Selatan", "sortOrder": 1 },
+  { "code": "Setiabudi", "label": "Setiabudi", "parentCode": "Jakarta Selatan", "sortOrder": 2 },
+  { "code": "Kebayoran Baru", "label": "Kebayoran Baru", "parentCode": "Jakarta Selatan", "sortOrder": 3 },
+  { "code": "Kebayoran Lama", "label": "Kebayoran Lama", "parentCode": "Jakarta Selatan", "sortOrder": 4 },
+  { "code": "Pasar Minggu", "label": "Pasar Minggu", "parentCode": "Jakarta Selatan", "sortOrder": 5 },
+  { "code": "Mampang Prapatan", "label": "Mampang Prapatan", "parentCode": "Jakarta Selatan", "sortOrder": 6 },
+  { "code": "Pancoran", "label": "Pancoran", "parentCode": "Jakarta Selatan", "sortOrder": 7 },
+  { "code": "Jagakarsa", "label": "Jagakarsa", "parentCode": "Jakarta Selatan", "sortOrder": 8 },
+  { "code": "Cilandak", "label": "Cilandak", "parentCode": "Jakarta Selatan", "sortOrder": 9 },
+  { "code": "Pesanggrahan", "label": "Pesanggrahan", "parentCode": "Jakarta Selatan", "sortOrder": 10 },
+
+  { "code": "Menteng", "label": "Menteng", "parentCode": "Jakarta Pusat", "sortOrder": 20 },
+  { "code": "Tanah Abang", "label": "Tanah Abang", "parentCode": "Jakarta Pusat", "sortOrder": 21 },
+  { "code": "Gambir", "label": "Gambir", "parentCode": "Jakarta Pusat", "sortOrder": 22 },
+  { "code": "Senen", "label": "Senen", "parentCode": "Jakarta Pusat", "sortOrder": 23 },
+
+  { "code": "Coblong", "label": "Coblong", "parentCode": "Bandung", "sortOrder": 30 },
+  { "code": "Sukajadi", "label": "Sukajadi", "parentCode": "Bandung", "sortOrder": 31 },
+  { "code": "Cicendo", "label": "Cicendo", "parentCode": "Bandung", "sortOrder": 32 },
+  { "code": "Bandung Wetan", "label": "Bandung Wetan", "parentCode": "Bandung", "sortOrder": 33 },
+  { "code": "Sumur Bandung", "label": "Sumur Bandung", "parentCode": "Bandung", "sortOrder": 34 },
+  { "code": "Astanaanyar", "label": "Astanaanyar", "parentCode": "Bandung", "sortOrder": 35 },
+  { "code": "Regol", "label": "Regol", "parentCode": "Bandung", "sortOrder": 36 },
+
+  { "code": "Tegalsari", "label": "Tegalsari", "parentCode": "Surabaya", "sortOrder": 40 },
+  { "code": "Gubeng", "label": "Gubeng", "parentCode": "Surabaya", "sortOrder": 41 },
+  { "code": "Wonokromo", "label": "Wonokromo", "parentCode": "Surabaya", "sortOrder": 42 },
+  { "code": "Rungkut", "label": "Rungkut", "parentCode": "Surabaya", "sortOrder": 43 },
+  { "code": "Sukolilo", "label": "Sukolilo", "parentCode": "Surabaya", "sortOrder": 44 },
+  { "code": "Sawahan", "label": "Sawahan", "parentCode": "Surabaya", "sortOrder": 45 },
+  { "code": "Genteng", "label": "Genteng", "parentCode": "Surabaya", "sortOrder": 46 },
+
+  { "code": "Umbulharjo", "label": "Umbulharjo", "parentCode": "Yogyakarta", "sortOrder": 50 },
+  { "code": "Gondokusuman", "label": "Gondokusuman", "parentCode": "Yogyakarta", "sortOrder": 51 },
+  { "code": "Jetis", "label": "Jetis", "parentCode": "Yogyakarta", "sortOrder": 52 },
+
+  { "code": "Serpong", "label": "Serpong", "parentCode": "Tangerang Selatan", "sortOrder": 60 },
+  { "code": "Ciputat", "label": "Ciputat", "parentCode": "Tangerang Selatan", "sortOrder": 61 },
+  { "code": "Pondok Aren", "label": "Pondok Aren", "parentCode": "Tangerang Selatan", "sortOrder": 62 }
+]

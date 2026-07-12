@@ -3,11 +3,11 @@
 @using AppraisalSystem.Web.Services
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@attribute [Authorize(Roles = "Appraiser,Supervisor,Admin")]
+@attribute [Authorize(Roles = AppRoles.AppraiserOrSupervisorOrAdmin)]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject AppraisalSystem.Application.Interfaces.IReferenceDataService ReferenceService
 @inject SavedSessionsService SavedSessions
 @inject NavigationManager NavigationManager
-@inject IWebHostEnvironment WebHostEnvironment
 
 @page "/appraisals/create"
 @page "/pencarian-data/create"
@@ -15,7 +15,7 @@
 
 <PageTitle>Form Appraisal</PageTitle>
 
-<BaseCard Title="Form Appraisal" Subtitle="Lengkapi data debitur dan data aplikasi secara ringkas." Class="mx-auto w-full max-w-6xl">
+<BaseCard Title="Form Appraisal" Subtitle="Lengkapi data debitur dan data aplikasi secara ringkas." Class="w-full">
     <EditForm Model="_model" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <BaseValidationSummary />
@@ -52,7 +52,7 @@
                                                       Class="md:col-span-2"
                                                       Value="@_selectedBranchName"
                                                       ValueChanged="OnBranchNameChanged"
-                                                      Options="@_branchOptions"
+                                                      Options="@_branchDisplayOptions"
                                                       Placeholder="Pilih Cabang"
                                                       ModalTitle="Pilih Cabang"
                                                       ModalSubtitle="Pilih cabang dari daftar yang tersedia." />
@@ -79,12 +79,12 @@
                         <div class="flex flex-wrap gap-2 text-sm text-slate-700">
                             <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                 <InputRadio Value="@ApplicantType.Business" />
-                                <span>Badan Usaha</span>
+                                <span>@ApplicantType.Business.GetLabel()</span>
                             </label>
 
                             <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                 <InputRadio Value="@ApplicantType.Individual" />
-                                <span>Perorangan</span>
+                                <span>@ApplicantType.Individual.GetLabel()</span>
                             </label>
                         </div>
                     </InputRadioGroup>
@@ -101,7 +101,7 @@
                                     <option value="">Pilih Badan Hukum</option>
                                     @foreach (var legalEntity in _legalEntityOptions)
                                     {
-                                        <option value="@legalEntity">@legalEntity</option>
+                                        <option value="@legalEntity.Code">@legalEntity.Label</option>
                                     }
                                 </BaseSelectField>
 
@@ -140,7 +140,7 @@
                                     <option value="">Pilih Jenis Kelamin</option>
                                     @foreach (var gender in _genderOptions)
                                     {
-                                        <option value="@gender">@gender</option>
+                                        <option value="@gender.Code">@gender.Label</option>
                                     }
                                 </BaseSelectField>
 
@@ -148,7 +148,7 @@
                                     <option value="">Pilih Status</option>
                                     @foreach (var maritalStatus in _maritalStatusOptions)
                                     {
-                                        <option value="@maritalStatus">@maritalStatus</option>
+                                        <option value="@maritalStatus.Code">@maritalStatus.Label</option>
                                     }
                                 </BaseSelectField>
 
@@ -169,7 +169,7 @@
                                                       Class="md:col-span-2"
                                                       Value="@_model.CollateralSubtype"
                                                       ValueChanged="OnCollateralSubtypeChanged"
-                                                      Options="@_collateralSubtypeOptions"
+                                                      Options="@_collateralSubtypeDisplayOptions"
                                                       Placeholder="Pilih Jenis Jaminan"
                                                       ModalTitle="Pilih Jenis Jaminan"
                                                       ModalSubtitle="Pilih jenis jaminan/agunan sesuai kategori aset." />
@@ -179,15 +179,39 @@
                             <BaseTextField Id="rt" Label="RT" @bind-Value="_model.Rt" />
                             <BaseTextField Id="rw" Label="RW" @bind-Value="_model.Rw" />
                             <BaseTextField Id="postalCode" Label="Kode Pos" @bind-Value="_model.PostalCode" />
-                            <BaseTextField Id="subdistrict" Label="Kelurahan" @bind-Value="_model.Subdistrict" />
-                            <BaseTextField Id="district" Label="Kecamatan" @bind-Value="_model.District" />
-                            <BaseTextField Id="city" Label="Kota/Kabupaten" @bind-Value="_model.City" />
+
+                            <BaseSearchListModalField Id="city"
+                                                      Label="Kota/Kabupaten"
+                                                      Value="@_model.City"
+                                                      ValueChanged="OnCityChanged"
+                                                      Options="@_cityDisplayOptions"
+                                                      Placeholder="Pilih Kota/Kabupaten"
+                                                      ModalTitle="Pilih Kota/Kabupaten"
+                                                      ModalSubtitle="Daftar kota mengikuti provinsi yang dipilih." />
+
+                            <BaseSearchListModalField Id="district"
+                                                      Label="Kecamatan"
+                                                      Value="@_model.District"
+                                                      ValueChanged="OnDistrictChanged"
+                                                      Options="@_districtDisplayOptions"
+                                                      Placeholder="Pilih Kecamatan"
+                                                      ModalTitle="Pilih Kecamatan"
+                                                      ModalSubtitle="Daftar kecamatan mengikuti kota yang dipilih." />
+
+                            <BaseSearchListModalField Id="subdistrict"
+                                                      Label="Kelurahan"
+                                                      Value="@_model.Subdistrict"
+                                                      ValueChanged="OnSubdistrictChanged"
+                                                      Options="@_subdistrictDisplayOptions"
+                                                      Placeholder="Pilih Kelurahan"
+                                                      ModalTitle="Pilih Kelurahan"
+                                                      ModalSubtitle="Daftar kelurahan mengikuti kecamatan yang dipilih." />
 
                             <BaseSearchListModalField Id="province"
                                                       Label="Provinsi"
                                                       Value="@_model.Province"
                                                       ValueChanged="OnProvinceChanged"
-                                                      Options="@_provinceOptions"
+                                                      Options="@_provinceDisplayOptions"
                                                       Placeholder="Pilih Provinsi"
                                                       ModalTitle="Pilih Provinsi"
                                                       ModalSubtitle="Cari provinsi dari daftar wilayah Indonesia." />
@@ -196,7 +220,7 @@
                                                       Label="Negara"
                                                       Value="@_model.Country"
                                                       ValueChanged="OnCountryChanged"
-                                                      Options="@_countryOptions"
+                                                      Options="@_countryDisplayOptions"
                                                       Placeholder="Pilih Negara"
                                                       ModalTitle="Pilih Negara"
                                                       ModalSubtitle="Cari negara dari daftar yang tersedia." />
@@ -249,99 +273,50 @@
     private AppraisalUpsertDto _model = new();
     private bool _isEdit;
     private bool _canCreateNew = true;
+    private bool _referenceLoaded;
     private List<ComparableInput> _comparables = [new()];
     private List<PropertyListing>? _dbListings;
     private string? _dbSessionJson;
     private string? _selectedBranchName;
-    private static readonly string[] _genderOptions = ["Laki-laki", "Perempuan"];
-    private static readonly string[] _maritalStatusOptions = ["Belum Menikah", "Menikah", "Cerai Hidup", "Cerai Mati"];
-    private static readonly string[] _legalEntityOptions = ["PT", "CV", "Firma", "Koperasi", "Yayasan", "Lainnya"];
-    private static readonly string[] _provinceOptions =
-    [
-        "Aceh", "Bali", "Banten", "Bengkulu", "Daerah Istimewa Yogyakarta", "DKI Jakarta", "Gorontalo", "Jambi",
-        "Jawa Barat", "Jawa Tengah", "Jawa Timur", "Kalimantan Barat", "Kalimantan Selatan", "Kalimantan Tengah",
-        "Kalimantan Timur", "Kalimantan Utara", "Kepulauan Bangka Belitung", "Kepulauan Riau", "Lampung", "Maluku",
-        "Maluku Utara", "Nusa Tenggara Barat", "Nusa Tenggara Timur", "Papua", "Papua Barat", "Papua Barat Daya",
-        "Papua Pegunungan", "Papua Selatan", "Papua Tengah", "Riau", "Sulawesi Barat", "Sulawesi Selatan",
-        "Sulawesi Tengah", "Sulawesi Tenggara", "Sulawesi Utara", "Sumatera Barat", "Sumatera Selatan", "Sumatera Utara"
-    ];
-    private static readonly string[] _countryOptions =
-    [
-        "Indonesia", "Malaysia", "Singapura", "Thailand", "Vietnam", "Filipina", "Brunei Darussalam", "Timor Leste",
-        "Tiongkok", "Jepang", "Korea Selatan", "India", "Australia", "Selandia Baru", "Amerika Serikat", "Kanada",
-        "Inggris", "Belanda", "Jerman", "Prancis", "Italia", "Spanyol", "Arab Saudi", "Uni Emirat Arab"
-    ];
-    private static readonly string[] _collateralSubtypeOptions =
-    [
-        "Rumah", "Tanah", "Ruko", "Apartment", "Gudang", "Villa", "SOHO", "Pabrik",
-        "Perkantoran", "Hotel", "Rumah Kos", "Stand", "Toko", "Gedung", "Condotel", "Lain-lain"
-    ];
 
-    private List<BranchData> _allBranchData = new();
-    private string[] _branchOptions = Array.Empty<string>();
+    // Reference data terpusat (JSON hari ini via IReferenceDataService; DB nanti tanpa mengubah komponen).
+    private IReadOnlyList<ReferenceItemDto> _genderOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _maritalStatusOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _legalEntityOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _countryOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _collateralSubtypeOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _provinceOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _cityOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _districtOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _subdistrictOptions = Array.Empty<ReferenceItemDto>();
+    private IReadOnlyList<ReferenceItemDto> _branchOptions = Array.Empty<ReferenceItemDto>();
 
-    private sealed class BranchData
+    // BaseSearchListModalField menerima string[] Options; kita render Display (kode - label untuk cabang, label untuk lainnya).
+    private string[] _collateralSubtypeDisplayOptions = Array.Empty<string>();
+    private string[] _provinceDisplayOptions = Array.Empty<string>();
+    private string[] _cityDisplayOptions = Array.Empty<string>();
+    private string[] _districtDisplayOptions = Array.Empty<string>();
+    private string[] _subdistrictDisplayOptions = Array.Empty<string>();
+    private string[] _countryDisplayOptions = Array.Empty<string>();
+    private string[] _branchDisplayOptions = Array.Empty<string>();
+
+    protected override async Task OnInitializedAsync()
     {
-        [JsonPropertyName("code")]
-        public string Code { get; set; } = string.Empty;
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        await EnsureReferenceDataAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        Console.WriteLine($"OnParametersSetAsync called. _allBranchData.Count: {_allBranchData.Count}");
-        // Load branch data
-        if (_allBranchData.Count == 0) // Only load once
-        {
-            try
-            {
-                var branchJsonPath = Path.Combine(WebHostEnvironment.WebRootPath, "data", "branch_data.json");
-                if (!File.Exists(branchJsonPath))
-                {
-                    Console.WriteLine($"Branch data file not found: {branchJsonPath}");
-                    _allBranchData = new List<BranchData>();
-                    _branchOptions = Array.Empty<string>();
-                    return;
-                }
-
-                var json = await File.ReadAllTextAsync(branchJsonPath);
-                _allBranchData = JsonSerializer.Deserialize<List<BranchData>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }) ?? new List<BranchData>();
-
-                _allBranchData = _allBranchData
-                    .Where(b => !string.IsNullOrWhiteSpace(b.Name))
-                    .Select(b => new BranchData
-                    {
-                        Code = (b.Code ?? string.Empty).Trim(),
-                        Name = (b.Name ?? string.Empty).Trim()
-                    })
-                    .ToList();
-
-                _branchOptions = _allBranchData
-                    .Select(BuildBranchOptionText)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(x => x)
-                    .ToArray();
-                Console.WriteLine($"Successfully loaded {_allBranchData.Count} branch records.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading branch data from wwwroot/data/branch_data.json: {ex.Message}");
-                // Optionally, add a user-facing error message here.
-            }
-        }
+        // Reference data hanya di-load sekali per instance komponen.
+        await EnsureReferenceDataAsync();
 
         _isEdit = PublicId.HasValue;
 
         var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
         var user = authState.User;
-        var isSupervisor = user.IsInRole("Supervisor") || user.IsInRole("Checker");
-        var isAdmin = user.IsInRole("Admin");
-        var isAppraiser = user.IsInRole("Appraiser");
+        var isSupervisor = user.IsInRole(AppRoles.Supervisor) || user.IsInRole(AppRoles.Checker);
+        var isAdmin = user.IsInRole(AppRoles.Admin);
+        var isAppraiser = user.IsInRole(AppRoles.Appraiser);
 
         _canCreateNew = isAdmin || isAppraiser;
 
@@ -424,15 +399,18 @@
             Notes = plainNotes
         };
 
-        // Show branch as "code - name" while keeping persisted value as code on save.
-        var existingBranch = FindBranchBySelection(existing.BranchCode); // Find branch by its code
+        // Tampilkan cabang sebagai "code - name" tapi simpan tetap sebagai code.
+        var existingBranch = FindBranchBySelection(existing.BranchCode);
         _selectedBranchName = existingBranch is null
-            ? existing.BranchCode // Fallback if not found, or if existing.BranchCode is already a name
-            : BuildBranchOptionText(existingBranch); // Display "code - name"
-        _model.BranchCode = existingBranch?.Code ?? existing.BranchCode; // Ensure model keeps the code
+            ? existing.BranchCode
+            : existingBranch.Display;
+        _model.BranchCode = existingBranch?.Code ?? existing.BranchCode;
 
 
         _comparables = comparables.Count > 0 ? comparables : [new()];
+
+        // Sesuaikan opsi cascading geo dengan nilai yang sudah tersimpan.
+        RefreshGeoDisplayOptions();
 
         // Load saved property listings & session context from DB
         if (existing.Id > 0)
@@ -672,7 +650,55 @@
 
     private Task OnProvinceChanged(string? value)
     {
-        _model.Province = value ?? string.Empty;
+        var next = value ?? string.Empty;
+        var provinceChanged = !string.Equals(_model.Province, next, StringComparison.OrdinalIgnoreCase);
+        _model.Province = next;
+
+        if (provinceChanged)
+        {
+            _model.City = string.Empty;
+            _model.District = string.Empty;
+            _model.Subdistrict = string.Empty;
+        }
+
+        RefreshGeoDisplayOptions();
+        return Task.CompletedTask;
+    }
+
+    private Task OnCityChanged(string? value)
+    {
+        var next = value ?? string.Empty;
+        var cityChanged = !string.Equals(_model.City, next, StringComparison.OrdinalIgnoreCase);
+        _model.City = next;
+
+        if (cityChanged)
+        {
+            _model.District = string.Empty;
+            _model.Subdistrict = string.Empty;
+        }
+
+        RefreshGeoDisplayOptions();
+        return Task.CompletedTask;
+    }
+
+    private Task OnDistrictChanged(string? value)
+    {
+        var next = value ?? string.Empty;
+        var districtChanged = !string.Equals(_model.District, next, StringComparison.OrdinalIgnoreCase);
+        _model.District = next;
+
+        if (districtChanged)
+        {
+            _model.Subdistrict = string.Empty;
+        }
+
+        RefreshGeoDisplayOptions();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSubdistrictChanged(string? value)
+    {
+        _model.Subdistrict = value ?? string.Empty;
         return Task.CompletedTask;
     }
 
@@ -690,40 +716,30 @@
 
     private Task OnBranchNameChanged(string? value)
     {
-        _selectedBranchName = value; // Update the display value
+        _selectedBranchName = value;
         var selectedBranch = FindBranchBySelection(value);
-        _model.BranchCode = selectedBranch?.Code ?? string.Empty; // Store the code in the model
+        _model.BranchCode = selectedBranch?.Code ?? string.Empty;
         return Task.CompletedTask;
     }
 
-    private static string BuildBranchOptionText(BranchData branch)
+    private ReferenceItemDto? FindBranchBySelection(string? value)
     {
-        if (string.IsNullOrWhiteSpace(branch.Code))
-        {
-            return branch.Name;
-        }
-
-        return $"{branch.Code} - {branch.Name}";
-    }
-
-    private BranchData? FindBranchBySelection(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || _allBranchData.Count == 0)
+        if (string.IsNullOrWhiteSpace(value) || _branchOptions.Count == 0)
         {
             return null;
         }
 
         var key = value.Trim();
 
-        var byDisplay = _allBranchData.FirstOrDefault(b =>
-            string.Equals(BuildBranchOptionText(b), key, StringComparison.OrdinalIgnoreCase));
+        var byDisplay = _branchOptions.FirstOrDefault(b =>
+            string.Equals(b.Display, key, StringComparison.OrdinalIgnoreCase));
 
         if (byDisplay is not null)
         {
             return byDisplay;
         }
 
-        var byCode = _allBranchData.FirstOrDefault(b =>
+        var byCode = _branchOptions.FirstOrDefault(b =>
             string.Equals(b.Code, key, StringComparison.OrdinalIgnoreCase));
 
         if (byCode is not null)
@@ -731,8 +747,87 @@
             return byCode;
         }
 
-        return _allBranchData.FirstOrDefault(b =>
-            string.Equals(b.Name, key, StringComparison.OrdinalIgnoreCase));
+        return _branchOptions.FirstOrDefault(b =>
+            string.Equals(b.Label, key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task EnsureReferenceDataAsync()
+    {
+        if (_referenceLoaded)
+        {
+            return;
+        }
+
+        try
+        {
+            var collateralTask = ReferenceService.GetCollateralSubtypesAsync();
+            var provinceTask = ReferenceService.GetProvincesAsync();
+            var cityTask = ReferenceService.GetCitiesAsync();
+            var districtTask = ReferenceService.GetDistrictsAsync();
+            var subdistrictTask = ReferenceService.GetSubdistrictsAsync();
+            var countryTask = ReferenceService.GetCountriesAsync();
+            var maritalTask = ReferenceService.GetMaritalStatusesAsync();
+            var genderTask = ReferenceService.GetGendersAsync();
+            var legalEntityTask = ReferenceService.GetLegalEntitiesAsync();
+            var branchTask = ReferenceService.GetBranchesAsync();
+
+            await Task.WhenAll(
+                collateralTask, provinceTask, cityTask, districtTask, subdistrictTask,
+                countryTask, maritalTask, genderTask, legalEntityTask, branchTask);
+
+            _collateralSubtypeOptions = collateralTask.Result;
+            _provinceOptions = provinceTask.Result;
+            _cityOptions = cityTask.Result;
+            _districtOptions = districtTask.Result;
+            _subdistrictOptions = subdistrictTask.Result;
+            _countryOptions = countryTask.Result;
+            _maritalStatusOptions = maritalTask.Result;
+            _genderOptions = genderTask.Result;
+            _legalEntityOptions = legalEntityTask.Result;
+            _branchOptions = branchTask.Result;
+
+            _collateralSubtypeDisplayOptions = _collateralSubtypeOptions.Select(x => x.Label).ToArray();
+            _provinceDisplayOptions = _provinceOptions.Select(x => x.Label).ToArray();
+            _countryDisplayOptions = _countryOptions.Select(x => x.Label).ToArray();
+            _branchDisplayOptions = _branchOptions.Select(x => x.Display).ToArray();
+
+            RefreshGeoDisplayOptions();
+        }
+        finally
+        {
+            _referenceLoaded = true;
+        }
+    }
+
+    private void RefreshGeoDisplayOptions()
+    {
+        // Cascading: kalau parent kosong, tampilkan semua sample agar edit data lama tetap searchable.
+        // Kalau parent terisi, filter anak berdasarkan ParentCode.
+        _cityDisplayOptions = FilterByParent(_cityOptions, _model.Province)
+            .Select(x => x.Label)
+            .ToArray();
+
+        _districtDisplayOptions = FilterByParent(_districtOptions, _model.City)
+            .Select(x => x.Label)
+            .ToArray();
+
+        _subdistrictDisplayOptions = FilterByParent(_subdistrictOptions, _model.District)
+            .Select(x => x.Label)
+            .ToArray();
+    }
+
+    private static IEnumerable<ReferenceItemDto> FilterByParent(IReadOnlyList<ReferenceItemDto> items, string? parentCode)
+    {
+        if (string.IsNullOrWhiteSpace(parentCode))
+        {
+            return items;
+        }
+
+        var parent = parentCode.Trim();
+        var filtered = items.Where(x => string.Equals(x.ParentCode, parent, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        // Fallback: jika parent belum punya anak di sample JSON, tampilkan semua agar UI tidak kosong total.
+        return filtered.Count > 0 ? filtered : items;
     }
 
     private static AppraisalUpsertDto CreateDefaultModel()

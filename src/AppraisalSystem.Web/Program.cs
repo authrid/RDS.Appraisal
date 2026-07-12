@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AppraisalSystem.Application;
+using AppraisalSystem.Application.Interfaces;
 using AppraisalSystem.Infrastructure;
 using AppraisalSystem.Infrastructure.Persistence;
 using AppraisalSystem.Web;
@@ -65,6 +66,9 @@ builder.Services
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
+
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IReferenceDataService, JsonReferenceDataService>();
 
 builder.Services.AddScoped<PropertyAsideService>();
 builder.Services.AddScoped<SavedSessionsService>();

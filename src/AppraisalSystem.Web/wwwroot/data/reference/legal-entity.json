@@ -1,0 +1,8 @@
+[
+  { "code": "PT", "label": "PT", "sortOrder": 1 },
+  { "code": "CV", "label": "CV", "sortOrder": 2 },
+  { "code": "Firma", "label": "Firma", "sortOrder": 3 },
+  { "code": "Koperasi", "label": "Koperasi", "sortOrder": 4 },
+  { "code": "Yayasan", "label": "Yayasan", "sortOrder": 5 },
+  { "code": "Lainnya", "label": "Lainnya", "sortOrder": 6 }
+]

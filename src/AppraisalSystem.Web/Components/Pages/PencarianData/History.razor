@@ -8,7 +8,7 @@
 
 <PageTitle>Pencarian Data - History</PageTitle>
 
-<BaseCard Title="History" Subtitle="Riwayat stage per aplikasi appraisal." Class="mx-auto w-full max-w-6xl">
+<BaseCard Title="History" Subtitle="Riwayat stage per aplikasi appraisal." Class="w-full">
     <LoadingSpinner Visible="_isLoading" Text="Memuat riwayat workflow..." />
 
     @if (!string.IsNullOrWhiteSpace(_feedbackMessage))
@@ -238,15 +238,15 @@
 
     private static string ResolveStageUser(AppraisalStatus status) => status switch
     {
-        AppraisalStatus.Draft => "Appraiser",
-        AppraisalStatus.Submitted => "Supervisor",
-        AppraisalStatus.Approved or AppraisalStatus.Rejected => "Supervisor",
+        AppraisalStatus.Draft => AppRoles.Appraiser,
+        AppraisalStatus.Submitted => AppRoles.Supervisor,
+        AppraisalStatus.Approved or AppraisalStatus.Rejected => AppRoles.Supervisor,
         _ => "-"
     };
 
     private static string ResolveCurrentNextUser(AppraisalStatus status) => status switch
     {
-        AppraisalStatus.Draft => "Supervisor",
+        AppraisalStatus.Draft => AppRoles.Supervisor,
         AppraisalStatus.Submitted => "-",
         AppraisalStatus.Approved or AppraisalStatus.Rejected => "-",
         _ => "-"

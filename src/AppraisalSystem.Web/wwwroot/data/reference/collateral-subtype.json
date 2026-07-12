@@ -1,0 +1,18 @@
+[
+  { "code": "Rumah", "label": "Rumah", "sortOrder": 1 },
+  { "code": "Tanah", "label": "Tanah", "sortOrder": 2 },
+  { "code": "Ruko", "label": "Ruko", "sortOrder": 3 },
+  { "code": "Apartment", "label": "Apartment", "sortOrder": 4 },
+  { "code": "Gudang", "label": "Gudang", "sortOrder": 5 },
+  { "code": "Villa", "label": "Villa", "sortOrder": 6 },
+  { "code": "SOHO", "label": "SOHO", "sortOrder": 7 },
+  { "code": "Pabrik", "label": "Pabrik", "sortOrder": 8 },
+  { "code": "Perkantoran", "label": "Perkantoran", "sortOrder": 9 },
+  { "code": "Hotel", "label": "Hotel", "sortOrder": 10 },
+  { "code": "Rumah Kos", "label": "Rumah Kos", "sortOrder": 11 },
+  { "code": "Stand", "label": "Stand", "sortOrder": 12 },
+  { "code": "Toko", "label": "Toko", "sortOrder": 13 },
+  { "code": "Gedung", "label": "Gedung", "sortOrder": 14 },
+  { "code": "Condotel", "label": "Condotel", "sortOrder": 15 },
+  { "code": "Lain-lain", "label": "Lain-lain", "sortOrder": 16 }
+]

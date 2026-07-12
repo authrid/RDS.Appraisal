@@ -1,0 +1,6 @@
+[
+  { "code": "Belum Menikah", "label": "Belum Menikah", "sortOrder": 1 },
+  { "code": "Menikah", "label": "Menikah", "sortOrder": 2 },
+  { "code": "Cerai Hidup", "label": "Cerai Hidup", "sortOrder": 3 },
+  { "code": "Cerai Mati", "label": "Cerai Mati", "sortOrder": 4 }
+]

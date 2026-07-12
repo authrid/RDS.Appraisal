@@ -1,0 +1,12 @@
+[
+  { "code": "001", "label": "Kantor Pusat Jakarta", "sortOrder": 1 },
+  { "code": "002", "label": "Cabang Sudirman", "sortOrder": 2 },
+  { "code": "003", "label": "Cabang Thamrin", "sortOrder": 3 },
+  { "code": "004", "label": "Cabang Kebon Jeruk", "sortOrder": 4 },
+  { "code": "005", "label": "Cabang Bandung", "sortOrder": 5 },
+  { "code": "006", "label": "Cabang Surabaya", "sortOrder": 6 },
+  { "code": "007", "label": "Cabang Medan", "sortOrder": 7 },
+  { "code": "008", "label": "Cabang Makassar", "sortOrder": 8 },
+  { "code": "009", "label": "Cabang Semarang", "sortOrder": 9 },
+  { "code": "010", "label": "Cabang Yogyakarta", "sortOrder": 10 }
+]

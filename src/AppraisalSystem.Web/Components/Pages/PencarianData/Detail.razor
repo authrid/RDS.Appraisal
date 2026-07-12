@@ -13,7 +13,7 @@
 
 @if (!_isLoading && _detail is not null)
 {
-    <div class="mx-auto max-w-6xl space-y-5">
+    <div class="w-full space-y-5">
         <BaseCard Class="overflow-hidden">
             <div class="-m-5 px-5 py-6 text-white" style="background: radial-gradient(circle at top left, color-mix(in srgb, var(--brand-accent) 20%, transparent), transparent 36%), linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 78%, #081526) 0%, color-mix(in srgb, var(--brand-primary-hover) 84%, #123862) 56%, color-mix(in srgb, var(--brand-accent) 62%, var(--brand-primary)) 100%);">
                 <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -283,7 +283,7 @@
     @* <AuthorizeView Roles="Supervisor,Admin">
         @if (_detail.Status == AppraisalStatus.Submitted)
         {
-            <BaseCard Title="Approval Supervisor" Subtitle="Approve atau reject appraisal dengan catatan yang terdokumentasi." Class="mx-auto max-w-6xl">
+            <BaseCard Title="Approval Supervisor" Subtitle="Approve atau reject appraisal dengan catatan yang terdokumentasi." Class="w-full">
                 <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
                     <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-amber-700">Tindakan Review</p>
                     <p class="mb-0 text-sm text-slate-600">Keputusan supervisor akan langsung memperbarui status appraisal ini.</p>
@@ -373,8 +373,8 @@
 
         var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
         var user = authState.User;
-        _isSupervisorOrAdmin = user.IsInRole("Supervisor") || user.IsInRole("Admin");
-        _isAppraiserOrAdmin = user.IsInRole("Appraiser") || user.IsInRole("Admin");
+        _isSupervisorOrAdmin = user.IsInRole(AppRoles.Supervisor) || user.IsInRole(AppRoles.Admin);
+        _isAppraiserOrAdmin = user.IsInRole(AppRoles.Appraiser) || user.IsInRole(AppRoles.Admin);
 
         _detail = await AppraisalService.GetByPublicIdAsync(PublicId.ToString("D"));
         if (_detail is not null)
@@ -510,17 +510,9 @@
 
     private static string DisplayPercent(decimal? value) => value.HasValue ? $"{value.Value:N2}%" : "-";
 
-    private static string GetApplicantLabel(ApplicantType applicantType)
-        => applicantType == ApplicantType.Business ? "Badan Usaha" : "Perorangan";
+    private static string GetApplicantLabel(ApplicantType applicantType) => applicantType.GetLabel();
 
-    private static string GetCollateralLabel(CollateralType collateralType) => collateralType switch
-    {
-        CollateralType.Property => "Property",
-        CollateralType.Vehicle => "Vehicle",
-        CollateralType.Machine => "Machine",
-        CollateralType.Inventory => "Inventory",
-        _ => "Other"
-    };
+    private static string GetCollateralLabel(CollateralType collateralType) => collateralType.GetLabel();
 
     private static string BuildAddress(AppraisalDetailDto detail)
     {

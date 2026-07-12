@@ -1,10 +1,10 @@
 @page "/theme-preview"
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = AppRoles.Admin)]
 @inject Microsoft.Extensions.Options.IOptionsMonitor<AppraisalSystem.Web.Options.ThemeOptions> ThemeOptionsAccessor
 
 <PageTitle>Theme Preview</PageTitle>
 
-<BaseCard Title="Theme Preview" Subtitle="Validasi cepat identitas brand dari konfigurasi appsettings." Class="mx-auto w-full max-w-6xl">
+<BaseCard Title="Theme Preview" Subtitle="Validasi cepat identitas brand dari konfigurasi appsettings." Class="w-full">
     <div class="space-y-5">
         <BaseSectionPanel Eyebrow="Identity" Title="Brand Configuration" Subtitle="Nilai berikut dibaca langsung dari section Theme.">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">

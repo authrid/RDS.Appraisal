@@ -18,7 +18,7 @@
             <main class="@MainPanelClass">
                 <AppNavbar Title="@HeaderTitle" OnToggleSidebar="ToggleSidebar" SidebarHidden="_sidebarHidden" />
 
-                <section class="px-4 pb-5 pt-4 md:px-6">
+                <section class="px-3 pb-5 pt-4 md:px-4">
                     @if (!string.IsNullOrWhiteSpace(WorkspaceSelectionWarning))
                     {
                         <div class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
@@ -155,37 +155,13 @@
 
         var firstSegment = segments[0];
 
-        if (string.Equals(firstSegment, "dashboard", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Dashboard";
-        }
-
+        // Legacy alias "/appraisals" tetap dianggap Pencarian Data.
         if (AppRoutes.PencarianData.IsModuleSegment(firstSegment))
         {
             return "Pencarian Data";
         }
 
-        if (string.Equals(firstSegment, AppRoutes.PengkinianData.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
-        {
-            return "Pengkinian Data";
-        }
-
-        if (string.Equals(firstSegment, AppRoutes.Inquiry.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
-        {
-            return "Inquiry";
-        }
-
-        if (string.Equals(firstSegment, AppRoutes.Report.Main.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
-        {
-            return "Report";
-        }
-
-        if (string.Equals(firstSegment, AppRoutes.SystemPages.ThemePreview.TrimStart('/'), StringComparison.OrdinalIgnoreCase))
-        {
-            return "Theme Preview";
-        }
-
-        return "Appraisal System";
+        return AppNavigation.ResolveTitleForFirstSegment(firstSegment) ?? "Appraisal System";
     }
 
     private IReadOnlyList<string> ResolveActiveSecondaryBreadcrumbTitles(IReadOnlyList<SecondarySidebarItem> items)
