@@ -64,6 +64,13 @@ builder.Services
     .ValidateOnStart();
 
 builder.Services
+    .AddOptions<AppInfoOptions>()
+    .Bind(builder.Configuration.GetSection(AppInfoOptions.SectionName))
+    .Validate(AppInfoOptionsValidator.IsValid,
+        "App configuration is invalid. Set App:Name and App:Version in appsettings.")
+    .ValidateOnStart();
+
+builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 

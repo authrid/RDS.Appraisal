@@ -421,6 +421,30 @@ body.user-is-tabbing .auth-title:focus-visible {
     color: color-mix(in srgb, var(--brand-primary) 72%, #243f60);
 }
 
+.auth-footer {
+    margin-top: 1.35rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid color-mix(in srgb, var(--theme-panel-border) 80%, #ffffff);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--theme-text-muted);
+}
+
+.auth-footer__name {
+    font-weight: 700;
+    color: var(--theme-text-soft);
+}
+
+.auth-footer__version {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: color-mix(in srgb, var(--brand-primary) 55%, #64748b);
+}
+
 .auth-right {
     position: relative;
     overflow: hidden;

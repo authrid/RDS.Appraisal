@@ -1,0 +1,21 @@
+@inject Microsoft.Extensions.Options.IOptionsMonitor<AppraisalSystem.Web.Options.AppInfoOptions> AppInfoOptionsAccessor
+
+@if (ShowName)
+{
+    <span class="@NameClass">@App.Name</span>
+}
+<span class="@VersionClass">@App.DisplayVersion</span>
+@if (ShowTagline && !string.IsNullOrWhiteSpace(App.Tagline))
+{
+    <span class="@TaglineClass">@App.Tagline</span>
+}
+
+@code {
+    [Parameter] public bool ShowName { get; set; }
+    [Parameter] public bool ShowTagline { get; set; } = true;
+    [Parameter] public string? NameClass { get; set; }
+    [Parameter] public string? VersionClass { get; set; }
+    [Parameter] public string? TaglineClass { get; set; }
+
+    private AppraisalSystem.Web.Options.AppInfoOptions App => AppInfoOptionsAccessor.CurrentValue;
+}
