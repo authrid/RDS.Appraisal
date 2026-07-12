@@ -114,4 +114,7 @@ public sealed class AppraisalUpsertDto
 
     [MaxLength(16000)]
     public string WorkflowHistoryJson { get; set; } = string.Empty;
+
+    [MaxLength(16000)]
+    public string SavedSessionJson { get; set; } = string.Empty;
 }

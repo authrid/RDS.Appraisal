@@ -1,5 +1,6 @@
 using AppraisalSystem.Application.Common;
 using AppraisalSystem.Application.Dtos;
+using AppraisalSystem.Application.Features.ChatUI;
 using AppraisalSystem.Application.Interfaces;
 using AppraisalSystem.Domain.Entities;
 using AppraisalSystem.Domain.Enums;
@@ -85,6 +86,7 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             Notes = request.Notes,
             InternalMemo = request.InternalMemo,
             WorkflowHistoryJson = request.WorkflowHistoryJson,
+            SavedSessionJson = request.SavedSessionJson,
             Status = AppraisalStatus.Draft,
             CreatedBy = createdBy,
             CreatedAtUtc = DateTime.UtcNow
@@ -141,6 +143,7 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         appraisal.Notes = request.Notes;
         appraisal.InternalMemo = request.InternalMemo;
         appraisal.WorkflowHistoryJson = request.WorkflowHistoryJson;
+        appraisal.SavedSessionJson = request.SavedSessionJson;
 
         if (previousStatus == AppraisalStatus.Rejected)
         {
@@ -295,11 +298,129 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             Notes = appraisal.Notes,
             InternalMemo = appraisal.InternalMemo,
             WorkflowHistoryJson = appraisal.WorkflowHistoryJson,
+            SavedSessionJson = appraisal.SavedSessionJson,
             Status = appraisal.Status,
             CreatedBy = appraisal.CreatedBy,
             CreatedAtUtc = appraisal.CreatedAtUtc,
             UpdatedAtUtc = appraisal.UpdatedAtUtc,
             SupervisorNote = appraisal.SupervisorNote
         };
+    }
+
+    public async Task SaveListingsAsync(int appraisalId, List<PropertyListing> listings, CancellationToken cancellationToken = default)
+    {
+        var entities = listings.Select(p => new SavedPropertyListing
+        {
+            Url = p.Url ?? string.Empty,
+            ImageUrl = p.ImageUrl,
+            Price = p.Price,
+            Date = p.Date,
+            Type = p.Type,
+            Title = p.Title,
+            Description = p.Description,
+            Lt = p.Lt,
+            Lb = p.Lb,
+            Kt = p.Kt,
+            Km = p.Km,
+            DetailDescription = p.DetailDescription,
+            Certificate = p.Certificate,
+            Floor = p.Floor,
+            Electricity = p.Electricity,
+            Furnished = p.Furnished,
+            Facing = p.Facing,
+            LocationText = p.LocationText,
+            Transaction = p.Transaction,
+            PropertyType = p.PropertyType,
+            AddressDetail = p.AddressDetail,
+            LocationDetail = p.LocationDetail,
+            GroupDetail = p.GroupDetail,
+            Garage = p.Garage,
+            ListedDate = p.ListedDate,
+            IdListing = p.IdListing,
+            ApprovalStatus = p.ApprovalStatus,
+        }).ToList();
+
+        await repository.ReplaceListingsAsync(appraisalId, entities, cancellationToken);
+    }
+
+    public Task UpdateListingApprovalAsync(int listingId, ListingApprovalStatus status, CancellationToken cancellationToken = default)
+    {
+        return repository.UpdateListingApprovalAsync(listingId, status, cancellationToken);
+    }
+
+    public async Task SaveOcrResultAsync(int appraisalId, AddressInfo? address, CertificatePayload? certificate, CancellationToken cancellationToken = default)
+    {
+        var ocr = new OcrResult
+        {
+            Province = address?.Province,
+            City = address?.City,
+            District = address?.District,
+            SubDistrict = address?.SubDistrict,
+            JenisSertifikat = certificate?.JenisSertifikat,
+            NomorSertifikat = certificate?.NomorSertifikat,
+            NamaPemegang = certificate?.NamaPemegang,
+            Nib = certificate?.Nib,
+            LuasTanah = certificate?.LuasTanah,
+            LuasBangunan = certificate?.LuasBangunan,
+        };
+        await repository.SaveOcrResultAsync(appraisalId, ocr, cancellationToken);
+    }
+
+    public async Task<(AddressInfo? Address, CertificatePayload? Certificate)> GetOcrResultAsync(int appraisalId, CancellationToken cancellationToken = default)
+    {
+        var ocr = await repository.GetOcrResultAsync(appraisalId, cancellationToken);
+        if (ocr is null) return (null, null);
+
+        var address = new AddressInfo
+        {
+            Province = ocr.Province ?? string.Empty,
+            City = ocr.City ?? string.Empty,
+            District = ocr.District ?? string.Empty,
+            SubDistrict = ocr.SubDistrict ?? string.Empty,
+        };
+        var cert = new CertificatePayload
+        {
+            JenisSertifikat = ocr.JenisSertifikat,
+            NomorSertifikat = ocr.NomorSertifikat,
+            NamaPemegang = ocr.NamaPemegang,
+            Nib = ocr.Nib,
+            LuasTanah = ocr.LuasTanah,
+            LuasBangunan = ocr.LuasBangunan,
+        };
+        return (address, cert);
+    }
+
+    public async Task<List<PropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default)
+    {
+        var entities = await repository.GetListingsAsync(appraisalId, cancellationToken);
+        return entities.Select(e => new PropertyListing
+        {
+            Url = e.Url,
+            ImageUrl = e.ImageUrl ?? string.Empty,
+            Price = e.Price ?? string.Empty,
+            Date = e.Date ?? string.Empty,
+            Type = e.Type ?? string.Empty,
+            Title = e.Title ?? string.Empty,
+            Description = e.Description ?? string.Empty,
+            Lt = e.Lt ?? string.Empty,
+            Lb = e.Lb ?? string.Empty,
+            Kt = e.Kt ?? string.Empty,
+            Km = e.Km ?? string.Empty,
+            DetailDescription = e.DetailDescription,
+            Certificate = e.Certificate,
+            Floor = e.Floor,
+            Electricity = e.Electricity,
+            Furnished = e.Furnished,
+            Facing = e.Facing,
+            LocationText = e.LocationText,
+            Transaction = e.Transaction,
+            PropertyType = e.PropertyType,
+            AddressDetail = e.AddressDetail,
+            LocationDetail = e.LocationDetail,
+            GroupDetail = e.GroupDetail,
+            Garage = e.Garage,
+            ListedDate = e.ListedDate,
+            IdListing = e.IdListing,
+        }).ToList();
     }
 }

@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
 @inject NavigationManager NavigationManager
+@using AppraisalSystem.Application.Features.ChatUI
+@using AppraisalSystem.Web.Components.Features.ChatUI
 @using Microsoft.AspNetCore.Components.Authorization
 
 <PageTitle>Detail Appraisal</PageTitle>
@@ -164,6 +166,56 @@
                 </BaseSectionPanel>
             }
 
+            @if (_sessionAddress is not null || _sessionCert is not null)
+            {
+                <BaseSectionPanel Class="mt-5" Eyebrow="Data Sertifikat &amp; Lokasi" Subtitle="Informasi hasil OCR sertifikat dan alamat properti.">
+                    <AddressCard Address="@_sessionAddress" Certificate="@_sessionCert" IsProcessing="false" />
+                </BaseSectionPanel>
+            }
+
+            <BaseSectionPanel Class="mt-5" Eyebrow="Agunan Pembanding Tersimpan" Subtitle="Data properti pembanding yang disimpan dari hasil pencarian.">
+                <SavedListTable DbSessionJson="@_detail.SavedSessionJson" DbListings="@_listings" ReadOnly="true" ShowApproval="@_isSupervisorOrAdmin" />
+            </BaseSectionPanel>
+            @* <AuthorizeView Roles="Supervisor,Admin">
+                @if (_detail.Status == AppraisalStatus.Submitted)
+                {
+
+                    <BaseSectionPanel Class="mt-5" Eyebrow="Approval Supervisor" Subtitle="Approve atau reject appraisal dengan catatan yang terdokumentasi.">
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                            <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-amber-700">Tindakan Review</p>
+                            <p class="mb-0 text-sm text-slate-600">Keputusan supervisor akan langsung memperbarui status appraisal ini.</p>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
+                            <BaseTextAreaField Id="supervisorNote" Label="Catatan Supervisor" InputClass="min-h-32" @bind-Value="_supervisorNote" />
+
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <p class="mb-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400">Aksi</p>
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <BaseButton Variant="success" Size="lg" Class="w-full sm:w-auto" OnClick="OpenApproveDialogAsync">
+                                        <span class="inline-flex items-center gap-2">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                <path d="M4 10.5l3.5 3.5L16 5.5"></path>
+                                            </svg>
+                                            <span>Approve</span>
+                                        </span>
+                                    </BaseButton>
+                                    <BaseButton Variant="danger" Size="lg" Class="w-full sm:w-auto" OnClick="OpenRejectDialogAsync">
+                                        <span class="inline-flex items-center gap-2">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                <path d="M5.5 5.5l9 9"></path>
+                                                <path d="M14.5 5.5l-9 9"></path>
+                                            </svg>
+                                            <span>Reject</span>
+                                        </span>
+                                    </BaseButton>
+                                </div>
+                            </div>
+                        </div>
+                    </BaseSectionPanel>
+                }
+            </AuthorizeView> *@
+
             <div class="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
                 <BaseLinkButton Href="@AppRoutes.PencarianData.Main" Variant="secondary-muted" Size="lg" Class="w-full sm:w-auto">
                     <span class="inline-flex items-center gap-2">
@@ -174,18 +226,43 @@
                         <span>Back</span>
                     </span>
                 </BaseLinkButton>
-                @if (CanEditCurrentAppraisal)
+
+                <AuthorizeView Roles="Supervisor,Admin">
+                @if (_detail.Status == AppraisalStatus.Submitted)
                 {
-                    <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(PublicId.ToString("D"))" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                    <BaseButton Variant="danger" Size="lg" Class="w-full sm:w-auto" OnClick="OpenApproveDialogAsync">
                         <span class="inline-flex items-center gap-2">
                             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5z"></path>
-                                <path d="M12.5 6l1.5 1.5"></path>
+                                <path d="M4 10.5l3.5 3.5L16 5.5"></path>
                             </svg>
-                            <span>Edit</span>
+                            <span>Sendback</span>
                         </span>
-                    </BaseLinkButton>
+                    </BaseButton>
+                    <BaseButton Variant="success" Size="lg" Class="w-full sm:w-auto" OnClick="OpenRejectDialogAsync">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path d="M5.5 5.5l9 9"></path>
+                                <path d="M14.5 5.5l-9 9"></path>
+                            </svg>
+                            <span>Submit</span>
+                        </span>
+                    </BaseButton>
                 }
+                </AuthorizeView>
+                <AuthorizeView Roles="Appraiser,Admin">
+                    @if (CanEditCurrentAppraisal)
+                    {
+                        <BaseLinkButton Href="@AppRoutes.PencarianData.Edit(PublicId.ToString("D"))" Variant="brand" Size="lg" Class="w-full sm:w-auto">
+                            <span class="inline-flex items-center gap-2">
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M4 14.5V16h1.5L15 6.5 13.5 5 4 14.5z"></path>
+                                    <path d="M12.5 6l1.5 1.5"></path>
+                                </svg>
+                                <span>Edit</span>
+                            </span>
+                        </BaseLinkButton>
+                    }
+                </AuthorizeView>
                 @if (CanSubmitCurrentAppraisal)
                 {
                     <BaseButton Variant="brand" Size="lg" Class="w-full sm:w-auto" OnClick="SubmitAsync">
@@ -202,7 +279,7 @@
         </BaseCard>
     </div>
 
-    <AuthorizeView Roles="Supervisor,Admin">
+    @* <AuthorizeView Roles="Supervisor,Admin">
         @if (_detail.Status == AppraisalStatus.Submitted)
         {
             <BaseCard Title="Approval Supervisor" Subtitle="Approve atau reject appraisal dengan catatan yang terdokumentasi." Class="mx-auto max-w-6xl">
@@ -239,7 +316,7 @@
                 </div>
             </BaseCard>
         }
-    </AuthorizeView>
+    </AuthorizeView> *@
 }
 
 <ConfirmationDialog Open="_showApproveDialog"
@@ -268,6 +345,9 @@
     private const string ComparableMarker = "[[COMPARABLES]]";
     private string _plainNotes = string.Empty;
     private List<ComparableDetail> _comparables = [];
+    private List<PropertyListing> _listings = [];
+    private AddressInfo? _sessionAddress;
+    private CertificatePayload? _sessionCert;
     private bool _isSupervisorOrAdmin;
     private bool _isAppraiserOrAdmin;
 
@@ -293,6 +373,35 @@
             var parsed = ParseComparableSection(_detail.Notes);
             _plainNotes = parsed.Notes;
             _comparables = parsed.Comparables;
+            _listings = await AppraisalService.GetListingsAsync(_detail.Id);
+
+            // Load OCR result dari tabel terpisah (prioritas utama)
+            var (ocrAddr, ocrCert) = await AppraisalService.GetOcrResultAsync(_detail.Id);
+            if (ocrAddr is not null || ocrCert is not null)
+            {
+                _sessionAddress = ocrAddr;
+                _sessionCert = ocrCert;
+            }
+            else
+            {
+                // Fallback: parse dari SavedSessionJson (data lama)
+                if (!string.IsNullOrWhiteSpace(_detail.SavedSessionJson) && _detail.SavedSessionJson != "[]")
+                {
+                    try
+                    {
+                        var sessions = System.Text.Json.JsonSerializer.Deserialize<List<SavedSession>>(
+                            _detail.SavedSessionJson,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+                        if (sessions is { Count: > 0 })
+                        {
+                            var first = sessions[0];
+                            _sessionAddress = first.Address;
+                            _sessionCert = first.Certificate;
+                        }
+                    }
+                    catch { /* ignore parse errors */ }
+                }
+            }
         }
         _isLoading = false;
 

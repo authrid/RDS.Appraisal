@@ -1,9 +1,12 @@
 @page "/appraisals/create"
 @page "/pencarian-data/create"
 @page "/pencarian-data/{PublicId:guid}/edit"
+@using AppraisalSystem.Application.Features.ChatUI
 @using AppraisalSystem.Web.Components.Features.ChatUI
+@using AppraisalSystem.Web.Services
 @attribute [Authorize(Roles = "Appraiser,Supervisor,Admin")]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
+@inject SavedSessionsService SavedSessions
 @inject NavigationManager NavigationManager
 
 <PageTitle>Form Appraisal</PageTitle>
@@ -200,7 +203,7 @@
                     </div>
                 </div> 
                 <ChatContainer />
-                <SavedListTable />
+                <SavedListTable DbListings="@_dbListings" DbSessionJson="@_dbSessionJson" />
             </section>
         </div>
 
@@ -237,6 +240,8 @@
     private bool _isEdit;
     private bool _canCreateNew = true;
     private List<ComparableInput> _comparables = [new()];
+    private List<PropertyListing>? _dbListings;
+    private string? _dbSessionJson;
     private static readonly string[] _genderOptions = ["Laki-laki", "Perempuan"];
     private static readonly string[] _maritalStatusOptions = ["Belum Menikah", "Menikah", "Cerai Hidup", "Cerai Mati"];
     private static readonly string[] _legalEntityOptions = ["PT", "CV", "Firma", "Koperasi", "Yayasan", "Lainnya"];
@@ -347,6 +352,23 @@
 
         _comparables = comparables.Count > 0 ? comparables : [new()];
 
+        // Load saved property listings & session context from DB
+        if (existing.Id > 0)
+        {
+            _dbListings = await AppraisalService.GetListingsAsync(existing.Id);
+            _dbSessionJson = existing.SavedSessionJson;
+
+            if (!string.IsNullOrWhiteSpace(existing.SavedSessionJson))
+                SavedSessions.LoadSessionsFromJson(existing.SavedSessionJson);
+            else if (_dbListings.Count > 0)
+                SavedSessions.LoadFromRepository(_dbListings);
+        }
+        else
+        {
+            _dbListings = null;
+            _dbSessionJson = null;
+        }
+
         if (string.IsNullOrWhiteSpace(_model.ApplicationNumber))
         {
             _model.ApplicationNumber = GenerateApplicationNumber(_model.Segment);
@@ -357,10 +379,51 @@
     {
         _model.Notes = BuildNotesWithComparableSection(_model.Notes, _comparables);
 
+        // Serialize session context ke JSON
+        var sessionsList = SavedSessions.Sessions;
+        var hasSessionData = sessionsList.Count > 0
+            && (sessionsList.Sum(s => s.Listings.Count) > 0
+                || sessionsList.Any(s => s.Address is not null)
+                || sessionsList.Any(s => s.Certificate is not null));
+        if (hasSessionData)
+        {
+            _model.SavedSessionJson = System.Text.Json.JsonSerializer.Serialize(
+                sessionsList,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                    WriteIndented = false
+                });
+        }
+        else
+        {
+            _model.SavedSessionJson = string.Empty;
+        }
+
+        // Ekstrak address & certificate untuk disimpan ke tabel OcrResults
+        // Prioritas: dari LastOcr (langsung dari OCR) → fallback dari session
+        var ocrAddress = SavedSessions.LastOcrAddress
+            ?? SavedSessions.Sessions.Select(s => s.Address).FirstOrDefault(a => a is not null);
+        var ocrCert = SavedSessions.LastOcrCertificate
+            ?? SavedSessions.Sessions.Select(s => s.Certificate).FirstOrDefault(c => c is not null);
+
         if (_isEdit)
         {
             await AppraisalService.UpdateAsync(_model);
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId!.Value.ToString("D"))));
+
+            // Save property listings to DB
+            var allListings = SavedSessions.Sessions.SelectMany(s => s.Listings).ToList();
+            if (_model.Id.HasValue)
+            {
+                await AppraisalService.SaveListingsAsync(_model.Id.Value, allListings);
+                if (ocrAddress is not null || ocrCert is not null)
+                    await AppraisalService.SaveOcrResultAsync(_model.Id.Value, ocrAddress, ocrCert);
+            }
+
+            // Hapus data localStorage karena sudah tersimpan di database
+            await SavedSessions.ClearAllAsync();
+
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(PublicId!.Value.ToString("D"))), forceLoad: true);
             return;
         }
         else
@@ -374,6 +437,19 @@
             var authState = await (AuthenticationStateTask ?? Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
             var username = authState.User.Identity?.Name ?? "system";
             var newId = await AppraisalService.CreateAsync(_model, username);
+
+            // Save property listings to DB
+            var allListings = SavedSessions.Sessions.SelectMany(s => s.Listings).ToList();
+            if (allListings.Count > 0)
+                await AppraisalService.SaveListingsAsync(newId, allListings);
+
+            // Save OCR result
+            if (ocrAddress is not null || ocrCert is not null)
+                await AppraisalService.SaveOcrResultAsync(newId, ocrAddress, ocrCert);
+
+            // Hapus data localStorage karena sudah tersimpan di database
+            await SavedSessions.ClearAllAsync();
+
             var created = await AppraisalService.GetByIdAsync(newId);
             if (created is null)
             {
@@ -381,7 +457,7 @@
                 return;
             }
 
-            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(created.PublicId)));
+            NavigationManager.NavigateTo(NavigationManager.ToAppPath(AppRoutes.PencarianData.Detail(created.PublicId)), forceLoad: true);
             return;
         }
     }

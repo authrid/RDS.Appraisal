@@ -1,5 +1,6 @@
 using AppraisalSystem.Application.Common;
 using AppraisalSystem.Application.Dtos;
+using AppraisalSystem.Application.Features.ChatUI;
 using AppraisalSystem.Domain.Enums;
 
 namespace AppraisalSystem.Application.Interfaces;
@@ -15,4 +16,9 @@ public interface IAppraisalService
     Task ApproveAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default);
     Task RejectAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default);
     Task<DashboardSummaryDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default);
+    Task SaveListingsAsync(int appraisalId, List<PropertyListing> listings, CancellationToken cancellationToken = default);
+    Task<List<PropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default);
+    Task UpdateListingApprovalAsync(int listingId, ListingApprovalStatus status, CancellationToken cancellationToken = default);
+    Task SaveOcrResultAsync(int appraisalId, AddressInfo? address, CertificatePayload? certificate, CancellationToken cancellationToken = default);
+    Task<(AddressInfo? Address, CertificatePayload? Certificate)> GetOcrResultAsync(int appraisalId, CancellationToken cancellationToken = default);
 }

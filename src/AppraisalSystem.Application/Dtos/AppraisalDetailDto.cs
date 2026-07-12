@@ -45,6 +45,7 @@ public sealed class AppraisalDetailDto
     public string Notes { get; init; } = string.Empty;
     public string InternalMemo { get; init; } = string.Empty;
     public string WorkflowHistoryJson { get; init; } = string.Empty;
+    public string SavedSessionJson { get; init; } = string.Empty;
     public AppraisalStatus Status { get; init; }
     public string CreatedBy { get; init; } = string.Empty;
     public DateTime CreatedAtUtc { get; init; }

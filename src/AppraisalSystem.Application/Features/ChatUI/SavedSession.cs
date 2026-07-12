@@ -18,4 +18,7 @@ public class SavedSession
 
     [JsonPropertyName("listings")]
     public List<PropertyListing> Listings { get; set; } = new();
+
+    [JsonPropertyName("certificate")]
+    public CertificatePayload? Certificate { get; set; }
 }

@@ -50,6 +50,7 @@ public class Appraisal
     public string Notes { get; set; } = string.Empty;
     public string InternalMemo { get; set; } = string.Empty;
     public string WorkflowHistoryJson { get; set; } = string.Empty;
+    public string SavedSessionJson { get; set; } = string.Empty;
     public AppraisalStatus Status { get; set; } = AppraisalStatus.Draft;
     public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }

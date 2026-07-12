@@ -118,7 +118,7 @@
                         @if (msg.Role == "assistant" && msg.AddressInfo is not null)
                         {
                             <div class="flex w-full max-w-2xl flex-col gap-4">
-                                <AddressCard Address="@msg.AddressInfo" IsProcessing="false" />
+                                <AddressCard Address="@msg.AddressInfo" Certificate="@msg.CertificateInfo" IsProcessing="false" />
                                 @if (msg.Listings is not null)
                                 {
                                     <PropertyListingsGrid Listings="@msg.Listings" Total="@msg.CrawlTotal" Url="@msg.CrawlUrl" Error="@msg.CrawlError"
@@ -294,6 +294,7 @@
     private ProcessStep _processStep;
     private string? _processError;
     private AddressInfo? _lastAddressInfo;
+    private CertificatePayload? _lastCertificateInfo;
     private string? _currentSessionId;
     private string? _chatSessionId;
     private CrawlFormFields? _lastCrawlParams;
@@ -420,6 +421,9 @@
 
                 _processStep = ProcessStep.Crawling;
                 _lastAddressInfo = certResult.Address;
+                _lastCertificateInfo = certResult.Certificate;
+                SessionsSvc.LastOcrAddress = certResult.Address;
+                SessionsSvc.LastOcrCertificate = certResult.Certificate;
 
                 if (certResult.ParamsUsed is not null)
                 {
@@ -440,6 +444,7 @@
                     UpdateLastMsgContent("⚠️ **Gagal memproses sertifikat**");
                     var last = _messages[^1];
                     last.AddressInfo = certResult.Address;
+                    last.CertificateInfo = certResult.Certificate;
                     last.Listings = new();
                     last.CrawlError = certResult.Error ?? "Unknown error";
                 }
@@ -522,6 +527,7 @@
 
                     var lastMsg = _messages[^1];
                     lastMsg.AddressInfo = certResult.Address;
+                    lastMsg.CertificateInfo = certResult.Certificate;
                     lastMsg.Listings = newListings;
                     lastMsg.CrawlUrl = crawl.Url;
                     lastMsg.CrawlTotal = crawl.TotalListings ?? newListings.Count;
@@ -536,6 +542,7 @@
                     _processError = cr?.Error ?? "Crawl failed";
                     var last = _messages[^1];
                     last.AddressInfo = certResult.Address;
+                    last.CertificateInfo = certResult.Certificate;
                     last.Listings = new();
                     last.CrawlUrl = cr?.Url;
                     last.CrawlError = cr?.Error ?? "Unknown error";
@@ -742,7 +749,7 @@
         var sessionId = _currentSessionId ?? OrchestratorClientService.GenerateId();
         _currentSessionId = sessionId;
         foreach (var item in selected)
-            await SessionsSvc.AddToSessionAsync(sessionId, item, _lastAddressInfo);
+            await SessionsSvc.AddToSessionAsync(sessionId, item, _lastAddressInfo, _lastCertificateInfo);
         _selectedUrls.Clear();
     }
 
@@ -756,6 +763,9 @@
         _processStep = ProcessStep.Idle;
         _processError = null;
         _lastAddressInfo = null;
+        _lastCertificateInfo = null;
+        SessionsSvc.LastOcrAddress = null;
+        SessionsSvc.LastOcrCertificate = null;
         _currentSessionId = null;
         _chatSessionId = null;
         _lastCrawlParams = null;
@@ -790,6 +800,9 @@
         _processStep = ProcessStep.Idle;
         _processError = null;
         _lastAddressInfo = null;
+        _lastCertificateInfo = null;
+        SessionsSvc.LastOcrAddress = null;
+        SessionsSvc.LastOcrCertificate = null;
         _currentSessionId = null;
         _lastCrawlParams = null;
         _selectedUrls.Clear();
@@ -811,6 +824,9 @@
         _processStep = ProcessStep.Idle;
         _processError = null;
         _lastAddressInfo = null;
+        _lastCertificateInfo = null;
+        SessionsSvc.LastOcrAddress = null;
+        SessionsSvc.LastOcrCertificate = null;
         _currentSessionId = null;
         _lastCrawlParams = null;
         _refineParams = new();
