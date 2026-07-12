@@ -1,3 +1,5 @@
+using AppraisalSystem.Application.Features.ChatUI;
+
 namespace AppraisalSystem.Application.Features.ChatUI;
 
 public class Message
@@ -12,4 +14,5 @@ public class Message
     public int? CrawlTotal { get; set; }
     public string? CrawlError { get; set; }
     public MarketEstimateResult? MarketEstimate { get; set; }
+    public CertificatePayload? CertificateInfo { get; set; }
 }

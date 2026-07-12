@@ -1,0 +1,80 @@
+@using AppraisalSystem.Application.Features.ChatUI
+
+<div class="space-y-2">
+    @if (!string.IsNullOrEmpty(Listing.Description))
+    {
+        <p class="text-xs leading-relaxed text-muted-foreground">@Listing.Description</p>
+    }
+
+    <div class="grid grid-cols-2 gap-x-2.5 gap-y-2.5 md:grid-cols-3">
+        @if (!string.IsNullOrEmpty(Listing.LocationDetail))
+        {
+            <InfoRow Label="Lokasi" Value="@Listing.LocationDetail" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.AddressDetail))
+        {
+            <InfoRow Label="Alamat" Value="@Listing.AddressDetail" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Certificate))
+        {
+            <InfoRow Label="Sertifikat" Value="@Listing.Certificate" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.PropertyType))
+        {
+            <InfoRow Label="Tipe Properti" Value="@Listing.PropertyType" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Transaction))
+        {
+            <InfoRow Label="Transaksi" Value="@Listing.Transaction" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Lt))
+        {
+            <InfoRow Label="Luas Tanah" Value="@($"{Listing.Lt} m²")" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Lb))
+        {
+            <InfoRow Label="Luas Bangunan" Value="@($"{Listing.Lb} m²")" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Kt))
+        {
+            <InfoRow Label="Kamar Tidur" Value="@Listing.Kt" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Km))
+        {
+            <InfoRow Label="Kamar Mandi" Value="@Listing.Km" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Floor))
+        {
+            <InfoRow Label="Lantai" Value="@Listing.Floor" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Facing))
+        {
+            <InfoRow Label="Hadap" Value="@Listing.Facing" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Electricity))
+        {
+            <InfoRow Label="Listrik" Value="@Listing.Electricity" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Furnished))
+        {
+            <InfoRow Label="Furnished" Value="@Listing.Furnished" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.Garage))
+        {
+            <InfoRow Label="Garasi" Value="@Listing.Garage" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.ListedDate))
+        {
+            <InfoRow Label="Tgl. Listing" Value="@Listing.ListedDate" />
+        }
+        @if (!string.IsNullOrEmpty(Listing.IdListing))
+        {
+            <InfoRow Label="ID Listing" Value="@Listing.IdListing" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PropertyListing Listing { get; set; } = default!;
+}

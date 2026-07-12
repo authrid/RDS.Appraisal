@@ -1,0 +1,451 @@
+@using AppraisalSystem.Application.Features.ChatUI
+@using AppraisalSystem.Web.Services
+@using AppraisalSystem.Web.Components.Features.ChatUI.Base
+
+@implements IAsyncDisposable
+
+<div class="w-full overflow-x-auto rounded-lg border bg-card">
+    <table class="w-full text-left text-xs">
+        <thead>
+            <tr class="border-b bg-muted/30 text-muted-foreground">
+                @if (ShowApproval)
+                {
+                    <th class="w-24 px-2 py-2 font-medium text-center">Approval</th>
+                }
+                <th class="w-8 px-2 py-2 text-center font-medium">#</th>
+                <th class="px-2 py-2 font-medium">Group</th>
+                <th class="px-2 py-2 font-medium">Properti</th>
+                <th class="w-32 px-2 py-2 font-medium">Harga</th>
+                <th class="w-28 px-2 py-2 font-medium">LT / LB</th>
+                @if (!ReadOnly)
+                {
+                    <th class="w-12 px-2 py-2 font-medium text-right">Aksi</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var resolvedId = ResolvedSessionId;
+            }
+            @if (string.IsNullOrEmpty(resolvedId))
+            {
+                <tr>
+                    <td colspan="@ColumnCount" class="px-3 py-12 text-center text-muted-foreground">
+                        <span class="text-2xl">📭</span>
+                        <p class="mt-2 text-sm">Belum ada properti tersimpan</p>
+                        <p class="mt-1 text-[0.6rem] text-muted-foreground/60">Centang properti lalu klik Simpan</p>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                var session = Service.Sessions.FirstOrDefault(s => s.Id == resolvedId);
+                if (session is null)
+                {
+                    <tr>
+                        <td colspan="@ColumnCount" class="px-3 py-12 text-center text-muted-foreground">
+                            <span class="text-2xl">📭</span>
+                            <p class="mt-2 text-sm">Sesi tidak ditemukan</p>
+                        </td>
+                    </tr>
+                }
+                else if (session.Listings.Count == 0)
+                {
+                    <tr>
+                        <td colspan="@ColumnCount" class="px-3 py-12 text-center text-muted-foreground">
+                            <span class="text-2xl">📭</span>
+                            <p class="mt-2 text-sm">Belum ada properti tersimpan</p>
+                            <p class="mt-1 text-[0.6rem] text-muted-foreground/60">Centang properti lalu klik Simpan</p>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    var index = 0;
+                    foreach (var item in session.Listings)
+                    {
+                        index++;
+                        var rowId = $"lst-row-{resolvedId}-{index}";
+                        var isOpen = _openRows.Contains(rowId);
+
+                        <tr class="cursor-pointer border-b transition-colors hover:bg-muted/20 @(isOpen ? "bg-muted/10" : "")"
+                            @onclick="() => ToggleRow(rowId)"
+                            role="button"
+                            tabindex="0"
+                            @onkeydown="(e) => HandleKeydown(e, rowId)">
+                            
+                            @if (ShowApproval)
+                            {
+                                <td class="px-2 py-2.5 text-center">
+                                    <div class="inline-flex items-center gap-0.5 rounded-lg border bg-background p-0.5 shadow-xs">
+                                        <button type="button"
+                                                @onclick:stopPropagation
+                                                @onclick="() => ApproveListing(item)"
+                                                class="rounded px-1.5 py-1 text-[0.55rem] font-semibold uppercase tracking-wider transition-colors @(item.ApprovalStatus == AppraisalSystem.Domain.Enums.ListingApprovalStatus.Approved ? "bg-green-100 text-green-700" : "text-muted-foreground/40 hover:text-green-600 hover:bg-green-50")"
+                                                title="Setujui">✓ Approve</button>
+                                        <span class="h-3 w-px bg-border"></span>
+                                        <button type="button"
+                                                @onclick:stopPropagation
+                                                @onclick="() => RejectListing(item)"
+                                                class="rounded px-1.5 py-1 text-[0.55rem] font-semibold uppercase tracking-wider transition-colors @(item.ApprovalStatus == AppraisalSystem.Domain.Enums.ListingApprovalStatus.Rejected ? "bg-red-100 text-red-700" : "text-muted-foreground/40 hover:text-red-600 hover:bg-red-50")"
+                                                title="Tolak">✗ Reject</button>
+                                    </div>
+                                </td>
+                            }
+                            <td class="w-8 px-2 py-2.5 text-center text-muted-foreground/40">@index</td>
+                            <td class="px-2 py-2.5">
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="size-2.5 shrink-0 text-muted-foreground/40 transition-transform @(isOpen ? "" : "-rotate-90")"
+                                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                    <span class="text-[0.55rem] uppercase tracking-wider text-muted-foreground/40">@session.Label</span>
+                                </span>
+                            </td>
+                            <td class="px-2 py-2.5">
+                                <span class="line-clamp-1 font-medium">
+                                    @(!string.IsNullOrEmpty(item.Title)
+                                        ? item.Title
+                                        : (item.Description?.Length > 60 ? item.Description[..60] : item.Description ?? "Properti"))
+                                </span>
+                            </td>
+                            <td class="px-2 py-2.5 font-semibold text-primary">@item.Price</td>
+                            <td class="px-2 py-2.5 text-muted-foreground">
+                                @if (!string.IsNullOrEmpty(item.Lt) || !string.IsNullOrEmpty(item.Lb))
+                                {
+                                    <span>@(string.IsNullOrEmpty(item.Lt) ? "-" : item.Lt) / @(string.IsNullOrEmpty(item.Lb) ? "-" : item.Lb)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted-foreground/40">—</span>
+                                }
+                            </td>
+                            @if (!ReadOnly)
+                            {
+                                <td class="px-2 py-2.5 text-right">
+                                    <button type="button"
+                                            @onclick:stopPropagation
+                                            @onclick="() => RemoveFromSession(resolvedId, item.Url)"
+                                            class="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                            aria-label="Hapus properti">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round" class="size-3.5">
+                                            <path d="M3 6h18" />
+                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+
+                        @* --- Collapsible detail row --- *@
+                        <tr class="@(isOpen ? "" : "hidden")">
+                            <td colspan="@ColumnCount" class="bg-muted/5 p-0">
+                                <div class="border-t border-dashed px-4 py-3">
+                                    <div class="@(string.IsNullOrEmpty(item.ImageUrl) ? "" : "md:grid md:grid-cols-3") gap-4">
+                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        {
+                                            <div class="mb-3 md:mb-0">
+                                                <img src="@item.ImageUrl" alt="@item.Title"
+                                                     class="w-full rounded-lg border object-cover shadow-xs"
+                                                     style="max-height: 360px;" loading="lazy" />
+                                            </div>
+                                            <div class="md:col-span-2">
+                                                <DetailFields Listing="item" />
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <DetailFields Listing="item" />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+
+            @* empty states are handled inside the ActiveSessionId branch above *@
+        </tbody>
+    </table>
+
+    @{
+        var footerSessionId = ResolvedSessionId;
+        var footerSession = !string.IsNullOrEmpty(footerSessionId)
+            ? Service.Sessions.FirstOrDefault(s => s.Id == footerSessionId)
+            : null;
+        var footerCount = footerSession?.Listings.Count ?? 0;
+    }
+    @if (footerCount > 0)
+    {
+        <div class="flex items-center justify-between border-t px-3 py-2">
+            <div class="flex gap-2">
+                @if (ShowApproval && footerCount > 0)
+                {
+                    <Button Variant="outline" Size="sm" OnClick="HandleApproveAll" Class="gap-1 text-xs border-green-200 text-green-700 hover:bg-green-50">
+                        <svg class="size-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 10.5l3.5 3.5L16 5.5"></path>
+                        </svg>
+                        Approve All
+                    </Button>
+                    <Button Variant="outline" Size="sm" OnClick="HandleRejectAll" Class="gap-1 text-xs border-red-200 text-red-700 hover:bg-red-50">
+                        <svg class="size-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5.5 5.5l9 9"></path><path d="M14.5 5.5l-9 9"></path>
+                        </svg>
+                        Reject All
+                    </Button>
+                }
+                @if (!ReadOnly)
+                {
+                    @if (Service.TotalListings > 0)
+                    {
+                        <Button Variant="outline" Size="sm" OnClick="HandleClearAll" Class="gap-1.5 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                 stroke-linejoin="round" class="size-3">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
+                            Hapus Semua
+                        </Button>
+                    }
+                }
+            </div>
+            
+            @if (_approvalDirty)
+            {
+                <span class="mx-1 h-4 w-px bg-border"></span>
+                <Button Variant="outline" Size="sm" OnClick="HandleSaveApprovals" Class="gap-1 text-xs border-green-200 text-green-700 hover:bg-green-50">
+                    <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Simpan
+                </Button>
+            } else
+            {
+                
+                <span class="text-[0.6rem] text-muted-foreground">
+                    @footerCount properti
+                </span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Inject]
+    private SavedSessionsService Service { get; set; } = default!;
+
+    [Inject] private AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalSvc { get; set; } = default!;
+
+    [Parameter] public string? ActiveSessionId { get; set; }
+    [Parameter] public List<PropertyListing>? DbListings { get; set; }
+    [Parameter] public string? DbSessionJson { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool ShowApproval { get; set; }
+
+    private string? ResolvedSessionId =>
+        ActiveSessionId ?? Service.Sessions.FirstOrDefault()?.Id;
+
+    private int ColumnCount => 5 + (ShowApproval ? 1 : 0) + (!ReadOnly ? 1 : 0);
+
+    private Action? _handler;
+    private readonly HashSet<string> _openRows = new();
+    private string? _previousDbSessionJson;
+    private bool _jsModuleReady;
+    private string? _loadedDbSessionJson;
+    private int _loadedDbListingsCount = -1;
+    private bool _approvalDirty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!ReadOnly)
+            {
+                await Service.InitializeAsync();
+                _handler = () => InvokeAsync(StateHasChanged);
+                Service.OnChange += _handler;
+                _jsModuleReady = true;
+            }
+
+            // Muat data dari DB setelah service siap
+            await LoadDbDataAsync();
+        }
+        else
+        {
+            // Deteksi perubahan parameter (navigasi ke appraisal lain)
+            // Untuk ReadOnly: selalu reload (data dari parameter, aman)
+            // Untuk non-ReadOnly: reload hanya jika JSON berubah
+            if (ReadOnly || DbSessionJson != _previousDbSessionJson)
+                await LoadDbDataAsync();
+        }
+    }
+
+    private async Task LoadDbDataAsync()
+    {
+        // Guard: hindari reload data yang sama (cegah infinite loop di ReadOnly)
+        if (_loadedDbSessionJson == DbSessionJson && _loadedDbListingsCount == (DbListings?.Count ?? -1))
+            return;
+
+        _loadedDbSessionJson = DbSessionJson;
+        _loadedDbListingsCount = DbListings?.Count ?? -1;
+        _previousDbSessionJson = DbSessionJson;
+
+        var hasValidJson = !string.IsNullOrEmpty(DbSessionJson)
+            && DbSessionJson != "[]";
+
+        if (hasValidJson)
+        {
+            Service.LoadSessionsFromJson(DbSessionJson!);
+
+            if (Service.Sessions.Count == 0 && DbListings is { Count: > 0 })
+                Service.LoadFromRepository(DbListings);
+        }
+        else if (DbListings is { Count: > 0 })
+        {
+            Service.LoadFromRepository(DbListings);
+        }
+        else if (ReadOnly)
+        {
+            Service.LoadFromRepository(new List<PropertyListing>());
+        }
+
+        // Restore approval status dari localStorage (jika ada)
+        if (ShowApproval && Service.Sessions.FirstOrDefault()?.Listings.Count > 0)
+        {
+            try
+            {
+                var map = await Service.LoadApprovalMapAsync();
+                if (map.Count > 0)
+                {
+                    foreach (var item in Service.Sessions.First()!.Listings)
+                    {
+                        if (!string.IsNullOrEmpty(item.Url) && map.TryGetValue(item.Url, out var status))
+                            item.ApprovalStatus = (AppraisalSystem.Domain.Enums.ListingApprovalStatus)status;
+                    }
+                }
+            }
+            catch
+            {
+                // Abaikan jika localStorage tidak bisa diakses (misal prerendering)
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleRow(string rowId)
+    {
+        if (!_openRows.Remove(rowId))
+            _openRows.Add(rowId);
+    }
+
+    private void HandleKeydown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e, string rowId)
+    {
+        if (e.Key is "Enter" or " ")
+            ToggleRow(rowId);
+    }
+
+    private void SetApproval(PropertyListing item, AppraisalSystem.Domain.Enums.ListingApprovalStatus status)
+    {
+        var session = Service.Sessions.FirstOrDefault();
+        var dbItem = session?.Listings.FirstOrDefault(l => l.Url == item.Url);
+        if (dbItem is null) return;
+
+        dbItem.ApprovalStatus = status;
+
+        if (DbListings is { Count: > 0 })
+        {
+            var dbListing = DbListings.FirstOrDefault(l => l.Url == item.Url);
+            if (dbListing is not null)
+                dbListing.ApprovalStatus = status;
+        }
+
+        _approvalDirty = true;
+    }
+
+    private Task ApproveListing(PropertyListing item)
+    {
+        SetApproval(item, AppraisalSystem.Domain.Enums.ListingApprovalStatus.Approved);
+        return Task.CompletedTask;
+    }
+
+    private Task RejectListing(PropertyListing item)
+    {
+        SetApproval(item, AppraisalSystem.Domain.Enums.ListingApprovalStatus.Rejected);
+        return Task.CompletedTask;
+    }
+
+    private async Task RemoveFromSession(string sessionId, string url)
+    {
+        await Service.RemoveFromSessionAsync(sessionId, url);
+    }
+
+    private void SetAllApproval(AppraisalSystem.Domain.Enums.ListingApprovalStatus status)
+    {
+        var session = Service.Sessions.FirstOrDefault();
+        if (session is null) return;
+        foreach (var item in session.Listings)
+            item.ApprovalStatus = status;
+        if (DbListings is not null)
+            foreach (var item in DbListings)
+                item.ApprovalStatus = status;
+        _approvalDirty = true;
+    }
+
+    private Task HandleApproveAll()
+    {
+        SetAllApproval(AppraisalSystem.Domain.Enums.ListingApprovalStatus.Approved);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleRejectAll()
+    {
+        SetAllApproval(AppraisalSystem.Domain.Enums.ListingApprovalStatus.Rejected);
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleSaveApprovals()
+    {
+        var session = Service.Sessions.FirstOrDefault();
+        if (session is null) return;
+
+        // Simpan approval status ke localStorage
+        await Service.PersistFromMemoryAsync();
+
+        // Simpan approval map terpisah agar bisa di-recall saat refresh
+        var map = new Dictionary<string, int>();
+        foreach (var item in session.Listings)
+            if (!string.IsNullOrEmpty(item.Url))
+                map[item.Url] = (int)item.ApprovalStatus;
+        await Service.SaveApprovalMapAsync(map);
+
+        _approvalDirty = false;
+    }
+
+    private async Task HandleClearAll()
+    {
+        await Service.ClearAllAsync();
+        _openRows.Clear();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handler is not null)
+            Service.OnChange -= _handler;
+        await Service.DisposeAsync();
+    }
+}

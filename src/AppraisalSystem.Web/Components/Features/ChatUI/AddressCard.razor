@@ -1,33 +1,130 @@
 ﻿@using AppraisalSystem.Application.Features.ChatUI
 
+@{
+    var cert = Certificate;
+    var addr = Address;
+}
 
-<div class="overflow-hidden border-primary/10 bg-linear-to-br from-primary/3 to-transparent rounded-xl border shadow">
-    <div class="p-4">
-        <div class="mb-3 flex items-center gap-2">
-            <span class="text-lg">📄</span>
-            <span class="text-sm font-semibold">
-                @(IsProcessing ? "Menganalisis sertifikat..." : "Analisis Sertifikat Selesai")
-            </span>
+<div class="overflow-hidden rounded-xl border border-primary/10 bg-white shadow-xs transition-shadow hover:shadow-sm">
+    @* --- Header --- *@
+    <div class="bg-linear-to-r from-primary/5 to-primary/2 px-4 py-3">
+        <div class="flex items-center gap-2.5">
+            <span class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-base">📄</span>
+            <div>
+                <p class="text-sm font-semibold text-foreground">
+                    @(IsProcessing ? "Menganalisis sertifikat..." : "Informasi Sertifikat")
+                </p>
+                <p class="text-[0.6rem] text-muted-foreground">
+                    @if (!IsProcessing)
+                    {
+                        <span>Data hasil OCR dan ekstraksi sertifikat</span>
+                    }
+                </p>
+            </div>
             @if (IsProcessing)
             {
                 <span class="ml-auto size-2 animate-pulse rounded-full bg-primary"></span>
             }
         </div>
-        <div class="space-y-1.5">
-            @foreach (var f in Fields)
-            {
-                if (!string.IsNullOrEmpty(f.Value))
-                {
-                    <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50">
-                        <span class="shrink-0 text-xs">@f.Icon</span>
-                        <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
-                            @f.Label
-                        </span>
-                        <span class="font-medium">@f.Value</span>
-                    </div>
-                }
-            }
-        </div>
+    </div>
+
+    @* --- Body --- *@
+    <div class="divide-y divide-slate-100">
+        @* Certificate section *@
+        @if (cert is not null && (HasCertValue(cert.JenisSertifikat) || HasCertValue(cert.NomorSertifikat) || HasCertValue(cert.NamaPemegang) || HasCertValue(cert.Nib) || HasCertValue(cert.LuasTanah) || HasCertValue(cert.LuasBangunan)))
+        {
+            <div class="px-4 py-3">
+                <p class="mb-2 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-amber-700">
+                    <span>🏛️</span>
+                    <span>Data Sertifikat</span>
+                </p>
+                <div class="grid lg:grid-cols-2 sm:grid-cols-1 gap-x-4 gap-y-1.5">
+                    @if (!string.IsNullOrEmpty(cert.JenisSertifikat))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Jenis</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.JenisSertifikat</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(cert.NomorSertifikat))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">No. Sertifikat</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.NomorSertifikat</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(cert.NamaPemegang))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Pemegang Hak</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.NamaPemegang</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(cert.Nib))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">NIB</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.Nib</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(cert.LuasTanah))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60"><span>📐</span> Tanah</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.LuasTanah</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(cert.LuasBangunan))
+                    {
+                        <div class="">
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60"><span>🏗️</span> Bangunan</p>
+                            <p class="text-sm font-medium text-foreground/90">@cert.LuasBangunan</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Address section *@
+        @if (!IsProcessing)
+        {
+            <div class="px-4 py-3">
+                <p class="mb-2 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-blue-700">
+                    <span>📍</span>
+                    <span>Lokasi</span>
+                </p>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    @if (HasValue(addr.Province))
+                    {
+                        <div>
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Provinsi</p>
+                            <p class="text-sm font-medium text-foreground/90">@addr.Province</p>
+                        </div>
+                    }
+                    @if (HasValue(addr.City))
+                    {
+                        <div>
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Kota/Kab.</p>
+                            <p class="text-sm font-medium text-foreground/90">@addr.City</p>
+                        </div>
+                    }
+                    @if (HasValue(addr.District))
+                    {
+                        <div>
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Kecamatan</p>
+                            <p class="text-sm font-medium text-foreground/90">@addr.District</p>
+                        </div>
+                    }
+                    @if (HasValue(addr.SubDistrict))
+                    {
+                        <div>
+                            <p class="text-[0.55rem] font-semibold uppercase tracking-wider text-muted-foreground/60">Kelurahan</p>
+                            <p class="text-sm font-medium text-foreground/90">@addr.SubDistrict</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     </div>
 </div>
 
@@ -36,15 +133,11 @@
     public AddressInfo Address { get; set; } = default!;
 
     [Parameter]
+    public CertificatePayload? Certificate { get; set; }
+
+    [Parameter]
     public bool IsProcessing { get; set; }
 
-    private record FieldItem(string Label, string? Value, string Icon);
-
-    private List<FieldItem> Fields => new()
-    {
-        new("PROPINSI", Address.Province, "🗺️"),
-        new("KABUPATEN/KOTA", Address.City, "🏙️"),
-        new("KECAMATAN", Address.District, "📌"),
-        new("DESA/KELURAHAN", Address.SubDistrict, "📍"),
-    };
+    private static bool HasValue(string? s) => !string.IsNullOrWhiteSpace(s);
+    private static bool HasCertValue(string? s) => !string.IsNullOrWhiteSpace(s);
 }

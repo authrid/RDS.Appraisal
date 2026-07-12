@@ -1,0 +1,65 @@
+@using AppraisalSystem.Application.Features.ChatUI
+
+<div class="overflow-hidden rounded-xl border border-amber-200/60 bg-linear-to-br from-amber-50/80 to-white shadow-xs">
+    <div class="p-4">
+        <div class="mb-3 flex items-center gap-2">
+            <span class="text-lg">🏛️</span>
+            <span class="text-sm font-semibold">Data Sertifikat</span>
+        </div>
+        <div class="space-y-1.5">
+            @if (!string.IsNullOrEmpty(Certificate.JenisSertifikat))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">📋</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">Jenis</span>
+                    <span class="font-medium">@Certificate.JenisSertifikat</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Certificate.NomorSertifikat))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">🔖</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">No. Sertifikat</span>
+                    <span class="font-medium">@Certificate.NomorSertifikat</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Certificate.NamaPemegang))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">👤</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">Pemegang</span>
+                    <span class="font-medium">@Certificate.NamaPemegang</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Certificate.Nib))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">🆔</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">NIB</span>
+                    <span class="font-medium">@Certificate.Nib</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Certificate.LuasTanah))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">📐</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">Luas Tanah</span>
+                    <span class="font-medium">@Certificate.LuasTanah</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Certificate.LuasBangunan))
+            {
+                <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-amber-50/50">
+                    <span class="shrink-0 text-xs">🏗️</span>
+                    <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">Luas Bangunan</span>
+                    <span class="font-medium">@Certificate.LuasBangunan</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CertificatePayload Certificate { get; set; } = default!;
+}

@@ -105,4 +105,123 @@ public sealed class AppraisalRepository(AppraisalDbContext dbContext) : IApprais
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task ReplaceListingsAsync(int appraisalId, List<SavedPropertyListing> listings, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.SavedPropertyListings
+            .Where(x => x.AppraisalId == appraisalId)
+            .ToListAsync(cancellationToken);
+
+        var existingByUrl = existing
+            .Where(x => !string.IsNullOrEmpty(x.Url))
+            .ToDictionary(x => x.Url, StringComparer.OrdinalIgnoreCase);
+
+        var incomingUrls = listings
+            .Where(x => !string.IsNullOrEmpty(x.Url))
+            .Select(x => x.Url)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var now = DateTime.UtcNow;
+
+        foreach (var listing in listings)
+        {
+            listing.AppraisalId = appraisalId;
+
+            if (!string.IsNullOrEmpty(listing.Url) && existingByUrl.TryGetValue(listing.Url, out var existingRecord))
+            {
+                // Update field yang sudah ada — pertahankan Id & CreatedAtUtc
+                existingRecord.ImageUrl = listing.ImageUrl;
+                existingRecord.Price = listing.Price;
+                existingRecord.Date = listing.Date;
+                existingRecord.Type = listing.Type;
+                existingRecord.Title = listing.Title;
+                existingRecord.Description = listing.Description;
+                existingRecord.Lt = listing.Lt;
+                existingRecord.Lb = listing.Lb;
+                existingRecord.Kt = listing.Kt;
+                existingRecord.Km = listing.Km;
+                existingRecord.DetailDescription = listing.DetailDescription;
+                existingRecord.Certificate = listing.Certificate;
+                existingRecord.Floor = listing.Floor;
+                existingRecord.Electricity = listing.Electricity;
+                existingRecord.Furnished = listing.Furnished;
+                existingRecord.Facing = listing.Facing;
+                existingRecord.LocationText = listing.LocationText;
+                existingRecord.Transaction = listing.Transaction;
+                existingRecord.PropertyType = listing.PropertyType;
+                existingRecord.AddressDetail = listing.AddressDetail;
+                existingRecord.LocationDetail = listing.LocationDetail;
+                existingRecord.GroupDetail = listing.GroupDetail;
+                existingRecord.Garage = listing.Garage;
+                existingRecord.ListedDate = listing.ListedDate;
+                existingRecord.IdListing = listing.IdListing;
+                existingRecord.ApprovalStatus = listing.ApprovalStatus;
+            }
+            else
+            {
+                // Insert baru
+                listing.CreatedAtUtc = now;
+                await dbContext.SavedPropertyListings.AddAsync(listing, cancellationToken);
+            }
+        }
+
+        // Hapus record yang ada di DB tapi tidak ada di incoming
+        var toDelete = existing.Where(x => !incomingUrls.Contains(x.Url)).ToList();
+        if (toDelete.Count > 0)
+            dbContext.SavedPropertyListings.RemoveRange(toDelete);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task<List<SavedPropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.SavedPropertyListings
+            .Where(x => x.AppraisalId == appraisalId)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task UpdateListingApprovalAsync(int listingId, ListingApprovalStatus status, CancellationToken cancellationToken = default)
+    {
+        var listing = await dbContext.SavedPropertyListings
+            .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken);
+        if (listing is null) return;
+
+        listing.ApprovalStatus = status;
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SaveOcrResultAsync(int appraisalId, OcrResult ocr, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.OcrResults
+            .FirstOrDefaultAsync(x => x.AppraisalId == appraisalId, cancellationToken);
+
+        if (existing is not null)
+        {
+            existing.Province = ocr.Province;
+            existing.City = ocr.City;
+            existing.District = ocr.District;
+            existing.SubDistrict = ocr.SubDistrict;
+            existing.JenisSertifikat = ocr.JenisSertifikat;
+            existing.NomorSertifikat = ocr.NomorSertifikat;
+            existing.NamaPemegang = ocr.NamaPemegang;
+            existing.Nib = ocr.Nib;
+            existing.LuasTanah = ocr.LuasTanah;
+            existing.LuasBangunan = ocr.LuasBangunan;
+        }
+        else
+        {
+            ocr.AppraisalId = appraisalId;
+            await dbContext.OcrResults.AddAsync(ocr, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task<OcrResult?> GetOcrResultAsync(int appraisalId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.OcrResults
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.AppraisalId == appraisalId, cancellationToken);
+    }
 }

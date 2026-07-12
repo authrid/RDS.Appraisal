@@ -14,4 +14,10 @@ public interface IAppraisalRepository
     Task UpdateAsync(Appraisal appraisal, CancellationToken cancellationToken = default);
     Task<DashboardSummaryDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default);
     Task SetStatusAsync(int id, AppraisalStatus status, string? supervisorNote, CancellationToken cancellationToken = default);
+
+    Task ReplaceListingsAsync(int appraisalId, List<SavedPropertyListing> listings, CancellationToken cancellationToken = default);
+    Task<List<SavedPropertyListing>> GetListingsAsync(int appraisalId, CancellationToken cancellationToken = default);
+    Task UpdateListingApprovalAsync(int listingId, ListingApprovalStatus status, CancellationToken cancellationToken = default);
+    Task SaveOcrResultAsync(int appraisalId, OcrResult ocr, CancellationToken cancellationToken = default);
+    Task<OcrResult?> GetOcrResultAsync(int appraisalId, CancellationToken cancellationToken = default);
 }

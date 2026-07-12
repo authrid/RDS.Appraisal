@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using AppraisalSystem.Domain.Enums;
 
 namespace AppraisalSystem.Application.Features.ChatUI;
 
@@ -85,4 +86,7 @@ public class PropertyListing
 
     [JsonPropertyName("id_listing")]
     public string? IdListing { get; set; }
+
+    [JsonPropertyName("approval_status")]
+    public ListingApprovalStatus ApprovalStatus { get; set; } = ListingApprovalStatus.Pending;
 }

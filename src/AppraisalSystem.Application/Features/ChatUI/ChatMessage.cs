@@ -33,4 +33,7 @@ public class ChatMessage
 
     [JsonPropertyName("marketEstimate")]
     public MarketEstimateResult? MarketEstimate { get; set; }
+
+    [JsonPropertyName("certificateInfo")]
+    public CertificatePayload? CertificateInfo { get; set; }
 }

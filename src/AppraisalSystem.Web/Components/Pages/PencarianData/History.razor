@@ -1,4 +1,4 @@
-﻿@page "/pencarian-data/{PublicId:guid}/history"
+@page "/pencarian-data/{PublicId:guid}/history"
 @page "/pencarian-data/history"
 @attribute [Authorize]
 @inject AppraisalSystem.Application.Interfaces.IAppraisalService AppraisalService
@@ -160,9 +160,6 @@
         }
     }
 
-    private string BuildSelectedAppNo()
-        => _detail is null ? "-" : (string.IsNullOrWhiteSpace(_detail.ApplicationNumber) ? $"APP-{_detail.Id:0000}" : _detail.ApplicationNumber);
-
     private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
     private static List<HistoryRow> BuildHistoryRows(AppraisalDetailDto detail, IReadOnlyList<WorkflowEntry> transitionEntries)
@@ -173,7 +170,6 @@
         }
 
         var rows = new List<HistoryRow>();
-
         var stageStatus = AppraisalStatus.Draft;
         var stageStartUtc = detail.CreatedAtUtc;
 
@@ -198,6 +194,10 @@
 
     private static List<CurrentStageRow> BuildCurrentStageRows(AppraisalDetailDto detail, IReadOnlyList<WorkflowEntry> transitionEntries)
     {
+        if (detail.Status == AppraisalStatus.Draft && transitionEntries.Count == 0)
+        {
+            return [];
+        }
         var statusDateUtc = transitionEntries.LastOrDefault()?.TimestampUtc ?? detail.CreatedAtUtc;
 
         return

@@ -1,0 +1,40 @@
+@if (_isExpanded || Text.Length <= MaxChars)
+{
+    <p class="@($"text-xs leading-relaxed {@Class}")">@Text</p>
+    if (Text.Length > MaxChars)
+    {
+        <button type="button" @onclick="Toggle"
+                class="mt-0.5 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[0.55rem] font-medium text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground">
+            <svg class="size-2.5 transition-transform @(_isExpanded ? "rotate-180" : "")"
+                 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6" />
+            </svg>
+            Lebih sedikit
+        </button>
+    }
+}
+else
+{
+    <p class="@($"text-xs leading-relaxed {@Class}")">@Text[..MaxChars]@(_ellipsisSuffix)</p>
+    <button type="button" @onclick="Toggle"
+            class="mt-0.5 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[0.55rem] font-medium text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground">
+        <svg class="size-2.5"
+             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6" />
+        </svg>
+        Lihat selengkapnya
+    </button>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
+    [Parameter] public int MaxChars { get; set; } = 120;
+    [Parameter] public string Class { get; set; } = "";
+
+    private bool _isExpanded;
+    private string _ellipsisSuffix => Text.Length > MaxChars + 3 ? "..." : string.Empty;
+
+    private void Toggle() => _isExpanded = !_isExpanded;
+}
