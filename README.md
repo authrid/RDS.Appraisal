@@ -213,11 +213,3 @@ Smoke test mencakup:
 | `RouteRegistrationSmokeTests.cs` | Semua route terdaftar di komponen |
 | `ComponentRenderSmokeTests.cs` | Render komponen (bUnit) |
 
-## Dokumentasi Tambahan
-
-Dokumen pendukung ada di folder [`docs/`](docs/):
-
-- `panduan-menemukan-file-tampilan-blazor.md` — cara menemukan file tampilan Blazor.
-- `project-lifecycle-tasklist.md` — tasklist siklus hidup project.
-- `workflow-market-comparison-v1.md` — workflow market comparison.
-- `implementation-backlog-market-comparison-v1.md` — backlog implementasi.
