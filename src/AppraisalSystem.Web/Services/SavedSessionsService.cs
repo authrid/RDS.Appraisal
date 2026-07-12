@@ -9,7 +9,9 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
     private const string StorageKey = "rds-saved-sessions";
 
     private Task<IJSObjectReference>? _module;
+    private DotNetObjectReference<SavedSessionsService>? _dotNetRef;
     private List<SavedSession> _sessions = new();
+    private bool _disposed;
 
     public event Action? OnChange;
 
@@ -18,11 +20,28 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     public async Task InitializeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         await LoadFromStorageAsync();
-        _module = js.InvokeAsync<IJSObjectReference>("import", "./js/saved-sessions.js").AsTask();
-        var module = await _module;
-        var dotnetRef = DotNetObjectReference.Create(this);
-        await module.InvokeVoidAsync("listenStorage", StorageKey, dotnetRef);
+        try
+        {
+            _module = js.InvokeAsync<IJSObjectReference>("import", "./js/saved-sessions.js").AsTask();
+            var module = await _module;
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("listenStorage", StorageKey, _dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already disconnected; skip JS listener registration.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Runtime was disposed during teardown.
+        }
+
         Notify();
     }
 
@@ -35,7 +54,21 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     private async Task LoadFromStorageAsync()
     {
-        var json = await js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+        string? json;
+
+        try
+        {
+            json = await js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         if (!string.IsNullOrEmpty(json))
         {
             try { _sessions = JsonSerializer.Deserialize<List<SavedSession>>(json, JsonOptions) ?? new(); }
@@ -47,7 +80,19 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
     private async Task PersistAsync()
     {
         var json = JsonSerializer.Serialize(_sessions, JsonOptions);
-        await js.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         Notify();
     }
 
@@ -96,10 +141,31 @@ public class SavedSessionsService(IJSRuntime js) : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
+
         if (_module is not null)
         {
-            var module = await _module;
-            await module.DisposeAsync();
+            try
+            {
+                var module = await _module;
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Expected when circuit disconnects before JS module disposal completes.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Runtime/module already disposed.
+            }
         }
     }
 

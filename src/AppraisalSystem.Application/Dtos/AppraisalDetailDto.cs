@@ -46,6 +46,8 @@ public sealed class AppraisalDetailDto
     public string InternalMemo { get; init; } = string.Empty;
     public string WorkflowHistoryJson { get; init; } = string.Empty;
     public AppraisalStatus Status { get; init; }
+    public string StageCode { get; init; } = string.Empty;
+    public string StageLabel { get; init; } = string.Empty;
     public string CreatedBy { get; init; } = string.Empty;
     public DateTime CreatedAtUtc { get; init; }
     public DateTime? UpdatedAtUtc { get; init; }

@@ -38,10 +38,14 @@
                     <div class="grid grid-cols-1 gap-3 xl:grid-cols-[1.2fr_0.7fr_0.7fr_auto] xl:items-end">
                         <BaseTextField Id="search" Label="Pencarian" @bind-Value="_search" Placeholder="Nama debitur / identitas / lokasi" />
 
-                        <BaseSelectField TValue="AppraisalStatus?" Id="statusFilter" Label="Filter Status" @bind-Value="_selectedStatus" disabled="@_isSupervisorCheckerView">
+                        <BaseSelectField TValue="AppraisalStatus?" Id="statusFilter" Label="Filter Status" @bind-Value="_selectedStatus" disabled="@(_isSupervisorCheckerView || _isAppraiserView)">
                             @if (_isSupervisorCheckerView)
                             {
                                 <option value="@AppraisalStatus.Submitted">@AppraisalStatus.Submitted</option>
+                            }
+                            else if (_isAppraiserView)
+                            {
+                                <option value="@AppraisalStatus.Draft">@AppraisalStatus.Draft</option>
                             }
                             else
                             {
@@ -186,6 +190,7 @@
 
     private bool _isLoading = true;
     private bool _isSupervisorCheckerView;
+    private bool _isAppraiserView;
     private string _loadError = string.Empty;
     private string _search = string.Empty;
     private AppraisalStatus? _selectedStatus;
@@ -213,10 +218,17 @@
         var user = authState.User;
 
         _isSupervisorCheckerView = user.IsInRole("Supervisor") || user.IsInRole("Checker");
+        _isAppraiserView = user.IsInRole("Appraiser") && !user.IsInRole("Admin");
 
         if (_isSupervisorCheckerView)
         {
             _selectedStatus = AppraisalStatus.Submitted;
+            return;
+        }
+
+        if (_isAppraiserView)
+        {
+            _selectedStatus = AppraisalStatus.Draft;
         }
     }
 
@@ -227,7 +239,9 @@
 
         try
         {
-            var effectiveStatus = _isSupervisorCheckerView ? AppraisalStatus.Submitted : _selectedStatus;
+            var effectiveStatus = _isSupervisorCheckerView
+                ? AppraisalStatus.Submitted
+                : (_isAppraiserView ? AppraisalStatus.Draft : _selectedStatus);
 
             _result = await AppraisalService.GetPagedAsync(new AppraisalQueryDto
             {
@@ -296,6 +310,11 @@
             return AppraisalStatus.Submitted.ToString();
         }
 
+        if (_isAppraiserView)
+        {
+            return AppraisalStatus.Draft.ToString();
+        }
+
         return _selectedStatus?.ToString() ?? "Semua";
     }
 
@@ -309,7 +328,9 @@
         var searchInfo = string.IsNullOrWhiteSpace(_search) ? "tanpa kata kunci" : $"kata kunci '{_search}'";
         var statusInfo = _isSupervisorCheckerView
             ? AppraisalStatus.Submitted.ToString()
-            : (_selectedStatus?.ToString() ?? "semua status");
+            : (_isAppraiserView
+                ? AppraisalStatus.Draft.ToString()
+                : (_selectedStatus?.ToString() ?? "semua status"));
         var applicantTypeInfo = _selectedApplicantType.HasValue
             ? ResolveApplicantTypeLabel(_selectedApplicantType.Value.ToString())
             : "semua kategori nasabah";

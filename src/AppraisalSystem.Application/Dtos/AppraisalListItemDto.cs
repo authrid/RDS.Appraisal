@@ -14,5 +14,7 @@ public sealed class AppraisalListItemDto
     public string DebtorName { get; init; } = string.Empty;
     public string CollateralType { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    public string StageCode { get; init; } = string.Empty;
+    public string StageLabel { get; init; } = string.Empty;
     public DateTime CreatedAtUtc { get; init; }
 }
