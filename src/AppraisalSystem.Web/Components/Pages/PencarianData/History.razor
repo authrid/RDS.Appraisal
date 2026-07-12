@@ -18,7 +18,7 @@
         <div class="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_36%),linear-gradient(180deg,#f8fbff_0%,#f1f6fd_100%)] p-5">
             <p class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-blue-600">Workspace</p>
             <h3 class="mt-0 mb-2 text-xl font-extrabold text-slate-800">Monitoring history stage dalam satu tampilan</h3>
-            <p class="mb-0 max-w-2xl text-sm leading-6 text-slate-600">Grid pertama menampilkan posisi stage saat ini. Grid kedua menampilkan perpindahan stage secara ringkas.</p>
+            <p class="mb-0 max-w-2xl text-sm leading-6 text-slate-600">Grid pertama menampilkan posisi stage saat ini. Grid kedua menampilkan perpindahan stage secara ringkas dari pencarian data maker sampai selesai.</p>
         </div>
 
         <BaseSectionPanel Eyebrow="Current Position" Title="Posisi Stage Saat Ini" Subtitle="Menampilkan posisi workflow saat ini, tanggal status, user, dan tujuan pengajuan.">
@@ -198,7 +198,6 @@
         {
             return [];
         }
-
         var statusDateUtc = transitionEntries.LastOrDefault()?.TimestampUtc ?? detail.CreatedAtUtc;
 
         return
@@ -273,6 +272,8 @@
         public string Actor { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public string StageCode { get; set; } = string.Empty;
+        public string StageLabel { get; set; } = string.Empty;
     }
 
     private sealed class HistoryRow

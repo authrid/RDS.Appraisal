@@ -257,7 +257,9 @@
                 TimestampUtc = DateTime.UtcNow,
                 Actor = await ResolveActorNameAsync(),
                 Action = "Memo Updated",
-                Note = _newMemoContent.Trim()
+                Note = _newMemoContent.Trim(),
+                StageCode = AppraisalStageReference.GetCode(latest.Status),
+                StageLabel = AppraisalStageReference.GetLabel(latest.Status)
             });
 
             var payload = MapToUpsert(latest);
@@ -387,6 +389,8 @@
         public string Actor { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public string StageCode { get; set; } = string.Empty;
+        public string StageLabel { get; set; } = string.Empty;
     }
 
     private sealed class MemoRow

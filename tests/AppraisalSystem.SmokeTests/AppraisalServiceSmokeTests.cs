@@ -50,6 +50,8 @@ public sealed class AppraisalServiceSmokeTests
         Assert.Equal("Corporate", item.Segment);
         Assert.Equal("Business", item.ApplicantType);
         Assert.Equal("Submitted", item.Status);
+        Assert.Equal("2.0", item.StageCode);
+        Assert.Equal("2.0 - Pencarian Data Checker", item.StageLabel);
         Assert.Equal(31, result.TotalItems);
         Assert.Equal(2, result.PageNumber);
         Assert.Equal(10, result.PageSize);

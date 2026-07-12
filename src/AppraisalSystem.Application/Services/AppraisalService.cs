@@ -167,25 +167,25 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             throw new InvalidOperationException("Hanya data berstatus Draft yang dapat disubmit.");
         }
 
-        await AppendWorkflowEntryAsync(id, actor, "Submitted", "Submitted untuk review.", cancellationToken);
+        await AppendWorkflowEntryAsync(id, actor, "Submitted", "Submitted untuk review.", AppraisalStatus.Submitted, cancellationToken);
         await repository.SetStatusAsync(id, AppraisalStatus.Submitted, null, cancellationToken);
     }
 
     public async Task ApproveAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default)
     {
         var note = string.IsNullOrWhiteSpace(supervisorNote) ? "Approved tanpa catatan." : supervisorNote.Trim();
-        await AppendWorkflowEntryAsync(id, actor, "Approved", note, cancellationToken);
+        await AppendWorkflowEntryAsync(id, actor, "Approved", note, AppraisalStatus.Approved, cancellationToken);
         await repository.SetStatusAsync(id, AppraisalStatus.Approved, supervisorNote, cancellationToken);
     }
 
     public async Task RejectAsync(int id, string? supervisorNote, string? actor = null, CancellationToken cancellationToken = default)
     {
         var note = string.IsNullOrWhiteSpace(supervisorNote) ? "Rejected tanpa catatan." : supervisorNote.Trim();
-        await AppendWorkflowEntryAsync(id, actor, "Rejected", note, cancellationToken);
+        await AppendWorkflowEntryAsync(id, actor, "Rejected", note, AppraisalStatus.Rejected, cancellationToken);
         await repository.SetStatusAsync(id, AppraisalStatus.Rejected, supervisorNote, cancellationToken);
     }
 
-    private async Task AppendWorkflowEntryAsync(int id, string? actor, string action, string note, CancellationToken cancellationToken)
+    private async Task AppendWorkflowEntryAsync(int id, string? actor, string action, string note, AppraisalStatus stageStatus, CancellationToken cancellationToken)
     {
         var appraisal = await repository.GetByIdAsync(id, cancellationToken)
             ?? throw new InvalidOperationException("Appraisal not found.");
@@ -196,7 +196,9 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             TimestampUtc = DateTime.UtcNow,
             Actor = string.IsNullOrWhiteSpace(actor) ? "System User" : actor.Trim(),
             Action = action,
-            Note = note
+            Note = note,
+            StageCode = AppraisalStageReference.GetCode(stageStatus),
+            StageLabel = AppraisalStageReference.GetLabel(stageStatus)
         });
 
         appraisal.WorkflowHistoryJson = SerializeWorkflowHistory(entries);
@@ -231,6 +233,8 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
         public string Actor { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public string StageCode { get; set; } = string.Empty;
+        public string StageLabel { get; set; } = string.Empty;
     }
 
     private static AppraisalListItemDto MapListItem(Appraisal appraisal)
@@ -249,6 +253,8 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             DebtorName = appraisal.DebtorName,
             CollateralType = appraisal.CollateralType.ToString(),
             Status = appraisal.Status.ToString(),
+            StageCode = AppraisalStageReference.GetCode(appraisal.Status),
+            StageLabel = AppraisalStageReference.GetDisplay(appraisal.Status),
             CreatedAtUtc = appraisal.CreatedAtUtc
         };
     }
@@ -300,6 +306,8 @@ public sealed class AppraisalService(IAppraisalRepository repository) : IApprais
             WorkflowHistoryJson = appraisal.WorkflowHistoryJson,
             SavedSessionJson = appraisal.SavedSessionJson,
             Status = appraisal.Status,
+            StageCode = AppraisalStageReference.GetCode(appraisal.Status),
+            StageLabel = AppraisalStageReference.GetDisplay(appraisal.Status),
             CreatedBy = appraisal.CreatedBy,
             CreatedAtUtc = appraisal.CreatedAtUtc,
             UpdatedAtUtc = appraisal.UpdatedAtUtc,
