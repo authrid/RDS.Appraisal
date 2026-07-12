@@ -1,0 +1,102 @@
+@using System.Collections.Generic
+@using AppraisalSystem.Application.Features.ChatUI
+
+<style>
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .listing-card {
+        animation: fadeInUp 0.4s ease-out both;
+    }
+</style>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="listing-card rounded-xl border" style="border-color: var(--destructive, #ef4444); background: var(--destructive, rgba(239,68,68,0.05));">
+        <div class="flex flex-col items-center gap-2 py-6 text-center" style="padding: 1.5rem;">
+            <span style="font-size: 1.5rem;">⚠️</span>
+            <p class="text-sm font-medium">Gagal mengambil data dari Brighton</p>
+            <p class="text-xs text-muted-foreground">@Error</p>
+            @if (!string.IsNullOrEmpty(Url))
+            {
+                <a href="@Url" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/80">
+                    🔗 Buka manual di Brighton
+                </a>
+            }
+        </div>
+    </div>
+}
+else if (Listings is null || Listings.Count == 0)
+{
+    <div class="listing-card rounded-xl border bg-white" style="animation-delay: 0s">
+        <div class="flex flex-col items-center gap-2 py-6 text-center" style="padding: 1.5rem;">
+            <span style="font-size: 1.5rem;">🔍</span>
+            <p class="text-sm font-medium">Tidak ada properti ditemukan</p>
+            <p class="text-xs text-muted-foreground">Coba dengan kata kunci atau lokasi yang berbeda</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="space-y-3 listing-card" style="animation-delay: 0s">
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium">
+                📋 <span class="font-semibold">@(Total ?? Listings.Count)</span> properti ditemukan
+            </p>
+            @if (!string.IsNullOrEmpty(Url))
+            {
+                <a href="@Url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80">
+                    Lihat semua di Brighton
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                        <path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    </svg>
+                </a>
+            }
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+            @{
+                var idx = 0;
+            }
+            @foreach (var listing in Listings)
+            {
+                var current = listing;
+                var key = current.Url ?? $"listing-{idx}";
+                <div class="listing-card" style="animation-delay: @(idx * 0.05)s">
+                    <PropertyCard
+                        Listing="current"
+                        Selected="@(current.Url is not null && SelectedUrls?.Contains(current.Url) == true)"
+                        OnToggleSelect="HandleToggleSelect"
+                        OnSelect="HandleSelect" />
+                </div>
+                idx++;
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public List<PropertyListing> Listings { get; set; } = new();
+    [Parameter] public int? Total { get; set; }
+    [Parameter] public string? Url { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public HashSet<string>? SelectedUrls { get; set; }
+    [Parameter] public EventCallback<PropertyListing> OnToggleSelect { get; set; }
+    [Parameter] public EventCallback<PropertyListing> OnSelectProperty { get; set; }
+
+    private async Task HandleToggleSelect(PropertyListing listing)
+    {
+        await OnToggleSelect.InvokeAsync(listing);
+    }
+
+    private async Task HandleSelect(PropertyListing listing)
+    {
+        await OnSelectProperty.InvokeAsync(listing);
+    }
+}

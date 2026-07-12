@@ -1,0 +1,9 @@
+﻿<div class="rounded-lg bg-muted/60 px-3 py-2 text-center">
+    <p class="text-[0.6rem] font-medium text-muted-foreground uppercase">@Label</p>
+    <p class="text-sm font-semibold">@Value</p>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+}

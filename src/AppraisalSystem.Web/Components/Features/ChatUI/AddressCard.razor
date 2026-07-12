@@ -1,0 +1,50 @@
+﻿@using AppraisalSystem.Application.Features.ChatUI
+
+
+<div class="overflow-hidden border-primary/10 bg-linear-to-br from-primary/3 to-transparent rounded-xl border shadow">
+    <div class="p-4">
+        <div class="mb-3 flex items-center gap-2">
+            <span class="text-lg">📄</span>
+            <span class="text-sm font-semibold">
+                @(IsProcessing ? "Menganalisis sertifikat..." : "Analisis Sertifikat Selesai")
+            </span>
+            @if (IsProcessing)
+            {
+                <span class="ml-auto size-2 animate-pulse rounded-full bg-primary"></span>
+            }
+        </div>
+        <div class="space-y-1.5">
+            @foreach (var f in Fields)
+            {
+                if (!string.IsNullOrEmpty(f.Value))
+                {
+                    <div class="flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50">
+                        <span class="shrink-0 text-xs">@f.Icon</span>
+                        <span class="min-w-28 text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+                            @f.Label
+                        </span>
+                        <span class="font-medium">@f.Value</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AddressInfo Address { get; set; } = default!;
+
+    [Parameter]
+    public bool IsProcessing { get; set; }
+
+    private record FieldItem(string Label, string? Value, string Icon);
+
+    private List<FieldItem> Fields => new()
+    {
+        new("PROPINSI", Address.Province, "🗺️"),
+        new("KABUPATEN/KOTA", Address.City, "🏙️"),
+        new("KECAMATAN", Address.District, "📌"),
+        new("DESA/KELURAHAN", Address.SubDistrict, "📍"),
+    };
+}

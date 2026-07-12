@@ -1,0 +1,110 @@
+﻿@using AppraisalSystem.Application.Features.ChatUI
+
+@if ((Result.Status != MarketEstimateStatus.Ok) || Result.MarketEstimateSummary is null)
+{
+    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        @(Result.Message ?? "Data pembanding tidak cukup untuk estimasi.")
+    </div>
+}
+else
+{
+    var me = Result.MarketEstimateSummary;
+
+    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-gray-900">Estimasi Harga Pasar</h3>
+            @if (HasBadge)
+            {
+                var badge = Badge;
+                <span class="px-2 py-1 rounded-full text-xs font-medium @badge.Color">
+                    @badge.Label (@DeviationSign@(Result.Verdict!.DeviationPercent)%)
+                </span>
+            }
+        </div>
+
+        <div class="mb-4">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <span>@FormatRupiah(me.EstimatedValueMin)</span>
+                <span class="font-medium text-gray-700">@FormatRupiah(me.EstimatedValueMedian)</span>
+                <span>@FormatRupiah(me.EstimatedValueMax)</span>
+            </div>
+            <div class="relative h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-200 via-blue-400 to-blue-200 rounded-full" />
+                @if (MarkerLeftPercent.HasValue)
+                {
+                    <div class="absolute top-[-4px] w-0.5 h-4 bg-red-500"
+                         style="left: @MarkerLeftPercent.Value%"
+                         title="Nilai appraisal: @FormatRupiah(Result.TargetAppraisalValue!.Value)">
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            @foreach (var c in (Result.ComparablesUsed ?? []).Take(4))
+            {
+                <a href="@c.SourceUrl"
+                       target="_blank"
+                       rel="noreferrer"
+                       class="block rounded-lg border border-gray-100 p-2 text-xs hover:bg-gray-50">
+                    <div class="font-medium text-gray-800 truncate">@c.Title</div>
+                    <div class="text-gray-500">@FormatRupiah(c.Price) · @c.LandAreaM2 m²</div>
+                </a>
+            }
+        </div>
+
+        <p class="text-[11px] text-gray-400 leading-snug">@Result.Disclaimer</p>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public MarketEstimateResult Result { get; set; } = default!;
+
+    private static readonly Dictionary<string, (string Label, string Color)> VerdictLabel = new()
+    {
+        ["within_range"] = ("Sesuai Harga Pasar", "bg-green-100 text-green-800"),
+        ["above_range"] = ("Di Atas Harga Pasar", "bg-amber-100 text-amber-800"),
+        ["below_range"] = ("Di Bawah Harga Pasar", "bg-blue-100 text-blue-800"),
+    };
+
+    private bool HasBadge => Result.Verdict is not null && VerdictLabel.ContainsKey(Result.Verdict.Status);
+
+    private (string Label, string Color) Badge
+    {
+        get
+        {
+            var v = Result.Verdict!;
+            var entry = VerdictLabel[v.Status];
+            return (entry.Label, entry.Color);
+        }
+    }
+
+    private string DeviationSign => Result.Verdict!.DeviationPercent > 0 ? "+" : "";
+
+    private double? MarkerLeftPercent
+    {
+        get
+        {
+            var me = Result.MarketEstimateSummary;
+            if (me is null || Result.TargetAppraisalValue is null) return null;
+            if (Math.Abs(me.EstimatedValueMax - me.EstimatedValueMin) < 0.001) return 0;
+            var pct = (Result.TargetAppraisalValue.Value - me.EstimatedValueMin) /
+                       (me.EstimatedValueMax - me.EstimatedValueMin) * 100;
+            return Math.Min(100, Math.Max(0, pct));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Result is null)
+            throw new InvalidOperationException($"{nameof(Result)} parameter is required.");
+    }
+
+    private static string FormatRupiah(double n)
+    {
+        if (n >= 1_000_000_000) return $"Rp {(n / 1_000_000_000):F2} M";
+        if (n >= 1_000_000) return $"Rp {(n / 1_000_000):F0} Jt";
+        return $"Rp {n:N0}";
+    }
+}

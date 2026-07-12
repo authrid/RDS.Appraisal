@@ -1,0 +1,78 @@
+@using AppraisalSystem.Web.Services
+@using AppraisalSystem.Web.Components.Features.ChatUI.Base
+
+@implements IAsyncDisposable
+
+<aside class="flex max-h-svh min-h-svh flex-col border-r bg-muted/30">
+    <div class="flex shrink-0 items-center gap-2 border-b px-3 py-3">
+        <span class="text-sm font-semibold">📋 Saved Property Listings</span>
+        <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[0.6rem] font-medium text-primary">@Service.TotalListings</span>
+    </div>
+
+    <div class="scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
+        @if (Service.Sessions.Count == 0)
+        {
+            <div class="flex flex-1 items-center justify-center p-6 text-center">
+                <div>
+                    <span style="font-size: 1.5rem;">📭</span>
+                    <p class="mt-2 text-xs text-muted-foreground">Belum ada properti tersimpan</p>
+                    <p class="mt-1 text-[0.6rem] text-muted-foreground/60">Centang properti lalu klik Simpan</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-2 p-3">
+                @foreach (var session in Service.Sessions)
+                {
+                    <SessionGroup Session="session" OnRemoveListing="HandleRemoveListing" OnRemoveSession="HandleRemoveSession" />
+                }
+                @if (Service.Sessions.Count > 0)
+                {
+                    <Button Variant="outline" Size="sm" OnClick="HandleClearAll" Class="mt-2 w-full gap-1.5 text-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                            <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                        Hapus Semua (@Service.TotalListings)
+                    </Button>
+                }
+            </div>
+        }
+    </div>
+</aside>
+
+@code {
+    [Inject]
+    private SavedSessionsService Service { get; set; } = default!;
+
+    private Action? _handler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Service.InitializeAsync();
+        _handler = () => InvokeAsync(StateHasChanged);
+        Service.OnChange += _handler;
+    }
+
+    private async Task HandleRemoveListing((string SessionId, string Url) args)
+    {
+        await Service.RemoveFromSessionAsync(args.SessionId, args.Url);
+    }
+
+    private async Task HandleRemoveSession(string sessionId)
+    {
+        await Service.RemoveEntireSessionAsync(sessionId);
+    }
+
+    private async Task HandleClearAll()
+    {
+        await Service.ClearAllAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handler is not null)
+            Service.OnChange -= _handler;
+        await Service.DisposeAsync();
+    }
+}

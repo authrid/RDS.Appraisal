@@ -1,0 +1,842 @@
+@using System.Text.Json
+@using AppraisalSystem.Application.Features.ChatUI
+@using AppraisalSystem.Web.Components.Features.ChatUI.Base
+@using AppraisalSystem.Web.Services
+@using Microsoft.JSInterop
+@inject OrchestratorClientService ChatSvc
+@inject PropertyAsideService AsideSvc
+@inject SavedSessionsService SessionsSvc
+@implements IAsyncDisposable
+
+<style>
+    .input-container {
+        position: relative;
+        overflow: hidden;
+    }
+    .input-container::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 2px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            transparent 30%,
+            oklch(0.623 0.214 259.815) 45%,
+            oklch(0.707 0.165 254.624) 50%,
+            oklch(0.623 0.214 259.815) 55%,
+            transparent 70%,
+            transparent 100%
+        );
+        background-size: 200% 100%;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        animation: sweep-border 5s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+    @@keyframes sweep-border {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+</style>
+
+<div class="flex max-h-[800px] min-h-[800px] flex-col overflow-y-hidden border rounded-xl mb-4">
+    @* Header *@
+    <header class="flex items-center justify-between border-b px-6 py-4">
+        @if (_messages.Count == 0)
+        {
+            <div class="flex items-center gap-3">
+                <div>
+                    <h1 class="text-base font-medium">New Chat</h1>
+                    <p class="text-sm text-muted-foreground">
+                        @(_processStep == ProcessStep.Ocr ? "🔍 Mengekstrak teks OCR..." :
+                          _processStep == ProcessStep.Crawling ? "🌐 Mencari properti di Brighton..." :
+                          _processStep == ProcessStep.Done ? "✅ Selesai" :
+                          _processStep == ProcessStep.Error ? $"⚠️ Error: {_processError ?? "Gagal"}" :
+                          "How can I help you today?")
+                    </p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="flex items-center gap-3">
+                <div>
+                    <h1 class="text-base font-medium">RDS Appraisal Systems</h1>
+                    <p class="text-sm text-muted-foreground">
+                        @(_processStep == ProcessStep.Ocr ? "🔍 Mengekstrak teks OCR..." :
+                          _processStep == ProcessStep.Crawling ? "🌐 Mencari properti di Brighton..." :
+                          _processStep == ProcessStep.Done ? "✅ Selesai" :
+                          _processStep == ProcessStep.Error ? $"⚠️ Error: {_processError ?? "Gagal"}" :
+                          "How can I help you today?")
+                    </p>
+                </div>
+            </div>
+
+            @* <LogoHeader /> *@
+        }
+        <div class="flex items-center gap-2">
+            @if (_processStep != ProcessStep.Idle && _processStep != ProcessStep.Done && _processStep != ProcessStep.Error)
+            {
+                <span class="size-2 animate-pulse rounded-full bg-primary"></span>
+            }
+            <Button Variant="outline" Size="icon" OnClick="HandleNewChat" Class="">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" />
+                </svg>
+            </Button>
+        </div>
+    </header>
+
+    @* Main content *@
+    <main @ref="_scrollRef" class="@($"scrollbar flex-1 scrollbar-thumb-muted-foreground/30 scrollbar-track-background overflow-y-auto px-6 transition-all {(_messages.Count > 0 ? "py-2" : "flex items-center justify-center py-8")}")">
+        @if (_messages.Count == 0)
+        {
+            <div class="flex flex-col items-center text-center">
+                @* <Logo Class="mb-4" /> *@
+                <h2 class="text-xl font-medium">RDS Appraisal Systems</h2>
+                <p class="mt-2 max-w-xs text-muted-foreground">
+                    Upload sertifikat tanah untuk memulai pencarian properti, atau langsung chat untuk bertanya
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="mx-auto flex max-w-2xl flex-col gap-1">
+                @{
+                    var msgIdx = 0;
+                }
+                @foreach (var message in _messages)
+                {
+                    var isLast = msgIdx == _messages.Count - 1;
+                    var msg = message;
+                    <div class="@($"flex flex-col {(msg.Role == "user" ? "items-end" : "items-start")}")">
+                        @if (msg.Role == "assistant" && msg.AddressInfo is not null)
+                        {
+                            <div class="flex w-full max-w-2xl flex-col gap-4">
+                                <AddressCard Address="@msg.AddressInfo" IsProcessing="false" />
+                                @if (msg.Listings is not null)
+                                {
+                                    <PropertyListingsGrid Listings="@msg.Listings" Total="@msg.CrawlTotal" Url="@msg.CrawlUrl" Error="@msg.CrawlError"
+                                        SelectedUrls="_selectedUrls" OnToggleSelect="HandleToggleSelect" OnSelectProperty="HandleSelectProperty" />
+                                }
+                                @if (!string.IsNullOrEmpty(msg.Content) && !msg.Content.Contains("Menganalisis") && !msg.Content.Contains("Mencari properti") && msg.Listings is null)
+                                {
+                                    <div class="max-w-[85%] rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed text-foreground border">
+                                        <MarkdownContent Content="@msg.Content" />
+                                    </div>
+                                }
+                                @if (isLast && _lastAddressInfo is not null && msg.Listings is not null)
+                                {
+                                    <CrawlParamsForm AddressInfo="_lastAddressInfo" DefaultValues="_lastCrawlParams" OnResult="HandleCrawlFormResult" />
+                                }
+                            </div>
+                        }
+                        else if (msg.Role == "assistant" && msg.Listings is not null)
+                        {
+                            <div class="flex w-full max-w-2xl flex-col gap-4">
+                                <PropertyListingsGrid Listings="@msg.Listings" Total="@msg.CrawlTotal" Url="@msg.CrawlUrl" Error="@msg.CrawlError"
+                                    SelectedUrls="_selectedUrls" OnToggleSelect="HandleToggleSelect" OnSelectProperty="HandleSelectProperty" />
+                                @if (!string.IsNullOrEmpty(msg.Content) && !msg.Content.StartsWith("🧠") && !msg.Content.StartsWith("🔧"))
+                                {
+                                    <div class="max-w-[85%] rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed text-foreground border">
+                                        <MarkdownContent Content="@msg.Content" />
+                                    </div>
+                                }
+                                @if (isLast && _lastAddressInfo is not null)
+                                {
+                                    <CrawlParamsForm AddressInfo="_lastAddressInfo" DefaultValues="_lastCrawlParams" OnResult="HandleCrawlFormResult" />
+                                }
+                            </div>
+                        }
+                        else if (msg.Role == "assistant" && msg.MarketEstimate is not null && !_isStreaming)
+                        {
+                            <div class="flex w-full max-w-2xl flex-col gap-4">
+                                <MarketEstimateCard Result="@msg.MarketEstimate" />
+
+                                @if (!string.IsNullOrEmpty(msg.Content))
+                                {
+                                    <div class="max-w-[85%] rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed text-foreground border">
+                                        <MarkdownContent Content="@msg.Content" />
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="@($"max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed {(msg.Role == "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}")">
+                                @if (!string.IsNullOrEmpty(msg.ImageUrl))
+                                {
+                                    <img src="@msg.ImageUrl" alt="Uploaded" class="mb-2 max-h-60 rounded-lg object-cover border" />
+                                }
+                                <MarkdownContent Content="@msg.Content" />
+                            </div>
+                        }
+                    </div>
+                    msgIdx++;
+                }
+                <div @ref="_bottomRef" id="chat-bottom"></div>
+            </div>
+        }
+    </main>
+
+    @* Input area *@
+    <div class="bg-background p-4">
+        <div class="mx-auto max-w-2xl space-y-3">
+            @* Selected items bar *@
+            @if (_selectedUrls.Count > 0)
+            {
+                <div class="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/4 px-4 py-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">@_selectedUrls.Count</span>
+                        <span class="text-sm text-muted-foreground">properti dipilih</span>
+                    </div>
+                    <div class="ml-auto flex items-center gap-2">
+                        <Button Variant="ghost" Size="sm" OnClick="() => _selectedUrls.Clear()" Class="h-8 text-xs text-muted-foreground">Batal</Button>
+                        <Button Size="sm" OnClick="HandleSaveSelected" Class="h-8 gap-1.5 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+                            </svg>
+                            Simpan @_selectedUrls.Count
+                        </Button>
+                    </div>
+                </div>
+            }
+
+            @* Streaming indicator *@
+            @* @if (_isStreaming)
+            {
+                <div class="flex items-center gap-2 rounded-xl border border-primary/10 bg-primary/4 px-4 py-2">
+                    <span class="flex items-center gap-1.5">
+                        <span class="flex size-2 items-center justify-center">
+                            <span class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-primary opacity-75"></span>
+                            <span class="relative inline-flex size-1.5 rounded-full bg-primary"></span>
+                        </span>
+                        <span class="text-sm text-muted-foreground">Thinking...</span>
+                    </span>
+                </div>
+            } *@
+
+            @* File error message *@
+            @if (!string.IsNullOrEmpty(_fileError))
+            {
+                <div class="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0 text-destructive">
+                        <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
+                    </svg>
+                    <span class="text-sm text-destructive">@_fileError</span>
+                    <button type="button" @onclick="ClearFileError" class="ml-auto flex size-5 items-center justify-center rounded-full hover:bg-destructive/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+            }
+
+            @* Selected image preview *@
+            @if (!string.IsNullOrEmpty(_selectedImage))
+            {
+                <div class="space-y-2">
+                    <div class="relative inline-block">
+                        <img src="@_selectedImage" alt="Selected" class="h-20 rounded-lg border object-cover" />
+                        <button type="button" @onclick="ClearImage" class="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <RefineParamsForm Params="_refineParams" ParamsChanged="(p) => _refineParams = p" />
+                </div>
+            }
+
+            @* Input area *@
+            <div class="@($"flex flex-col gap-2 rounded-2xl border bg-muted/50 p-2 transition-all duration-300 {(_isBusy ? "input-container" : "")}")">
+                <textarea @ref="_textareaRef" @bind="_input" @bind:event="oninput" @bind:after="AutoResize" @onkeydown="HandleKeyDown"
+                    placeholder="Type a message..." rows="1" class="scrollbar max-h-40 min-h-10 w-full resize-none scrollbar-thumb-muted-foreground/30 scrollbar-track-background bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground">
+                </textarea>
+                <div class="flex flex-row items-center justify-between">
+                    <div>
+                        <InputFile @ref="_fileInputRef" OnChange="HandleImageSelect" accept=".jpg,.jpeg,.png,.webp" hidden aria-label="Upload image" id="chat-file-input" />
+                        <Button Variant="ghost" Size="icon" OnClick="TriggerFileInput" Class="mb-0 shrink-0 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                                <path d="M5 12h14" /><path d="M12 5v14" />
+                            </svg>
+                        </Button>
+                    </div>
+                    <Button Size="icon" OnClick="HandleSend" Disabled="(string.IsNullOrEmpty(_input.Trim()) && string.IsNullOrEmpty(_selectedImage)) || _isStreaming" Class="mb-0 shrink-0 rounded-full" aria-label="Send message">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                            <path d="m18 15-6-6-6 6" />
+                        </svg>
+                    </Button>
+                </div>
+            </div>
+
+            <p class="text-center text-xs text-muted-foreground">
+                Press <kbd class="rounded border px-1 font-mono">Enter</kbd> to send,
+                <kbd class="rounded border px-1 font-mono">Shift + Enter</kbd> for new line
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Message> _messages = new();
+    private string _input = "";
+    private bool _isStreaming;
+    private string? _selectedImage;
+    private string? _selectedImageBase64;
+    private string? _fileError;
+    private ProcessStep _processStep;
+    private string? _processError;
+    private AddressInfo? _lastAddressInfo;
+    private string? _currentSessionId;
+    private string? _chatSessionId;
+    private CrawlFormFields? _lastCrawlParams;
+    private ProcessCertificateRefineParams _refineParams = new();
+    private HashSet<string> _selectedUrls = new();
+    private List<PropertyListing> _allListings = new();
+    private CancellationTokenSource? _chatCts;
+
+    private bool _isBusy => _isStreaming || (_processStep != ProcessStep.Idle && _processStep != ProcessStep.Done && _processStep != ProcessStep.Error);
+
+    private ElementReference _scrollRef;
+    private ElementReference _bottomRef;
+    private ElementReference _textareaRef;
+    private InputFile? _fileInputRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SessionsSvc.InitializeAsync();
+            await _js.InvokeVoidAsync("eval", $@"
+                (function() {{
+                    var ta = document.querySelector('textarea[placeholder=""Type a message...""]');
+                    if (ta && !ta._autoResizeAttached) {{
+                        ta._autoResizeAttached = true;
+                        ta.addEventListener('input', function() {{
+                            this.style.height = 'auto';
+                            this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+                        }});
+                    }}
+                }})();
+            ");
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await _js.InvokeVoidAsync("eval", @"
+            (function() {
+                var container = document.querySelector('main[class*=""overflow-y-auto""]');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            })();
+        ");
+    }
+
+    private async Task AutoResize()
+    {
+        await _js.InvokeVoidAsync("eval", $@"
+            (function() {{
+                var el = document.querySelector('textarea[placeholder=""Type a message...""]');
+                if (el) {{
+                    el.style.height = 'auto';
+                    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+                }}
+            }})();
+        ");
+    }
+
+    private async Task HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await HandleSend();
+        }
+    }
+
+    private async Task HandleSend()
+    {
+        var trimmed = _input.Trim();
+        if (string.IsNullOrEmpty(trimmed) && string.IsNullOrEmpty(_selectedImage)) return;
+        if (_isStreaming) return;
+
+        var userMsg = new Message
+        {
+            Id = OrchestratorClientService.GenerateId(),
+            Role = "user",
+            Content = trimmed ?? (_selectedImage is not null ? "Sent a certificate image" : ""),
+            ImageUrl = _selectedImage,
+        };
+        _messages.Add(userMsg);
+        _input = "";
+        _isStreaming = true;
+
+        if (_selectedImage is not null && _selectedImageBase64 is not null)
+        {
+            var imageBase64 = _selectedImageBase64;
+            var restoreImage = _selectedImage;
+            var restoreBase64 = _selectedImageBase64;
+
+            var processingMsg = new Message { Id = OrchestratorClientService.GenerateId(), Role = "assistant", Content = "📄 **Menganalisis sertifikat...**" };
+            _messages.Add(processingMsg);
+
+            try
+            {
+                _processStep = ProcessStep.Ocr;
+                UpdateLastMsg("🔍 **OCR:** Mengekstrak teks dari gambar...");
+
+                var refine = new ProcessCertificateRefineParams();
+                if (_refineParams is not null)
+                {
+                    foreach (var prop in typeof(ProcessCertificateRefineParams).GetProperties())
+                    {
+                        var val = prop.GetValue(_refineParams) as string;
+                        if (!string.IsNullOrEmpty(val)) prop.SetValue(refine, val);
+                    }
+                }
+                if (!string.IsNullOrEmpty(trimmed))
+                {
+                    var textParams = OrchestratorClientService.ParseRefineFromText(trimmed);
+                    foreach (var prop in typeof(ProcessCertificateRefineParams).GetProperties())
+                    {
+                        var val = prop.GetValue(textParams) as string;
+                        if (!string.IsNullOrEmpty(val)) prop.SetValue(refine, val);
+                    }
+                }
+
+                var imageBytes = Convert.FromBase64String(imageBase64.Contains(',') ? imageBase64.Split(',')[1] : imageBase64);
+                var hasRefine = refine.GetType().GetProperties().Any(p => !string.IsNullOrEmpty(p.GetValue(refine) as string));
+                var certResult = await ChatSvc.ProcessCertificateAsync(
+                    new MemoryStream(imageBytes), "certificate.jpg", "SHM", "",
+                    hasRefine ? refine : null);
+
+                _processStep = ProcessStep.Crawling;
+                _lastAddressInfo = certResult.Address;
+
+                if (certResult.ParamsUsed is not null)
+                {
+                    _refineParams = certResult.ParamsUsed;
+                }
+
+                var sessionId = OrchestratorClientService.GenerateId();
+                _currentSessionId = sessionId;
+
+                UpdateLastMsg("🌐 **Mencari properti di Brighton.co.id...**");
+
+                var hasListings = certResult.CrawlResult?.Listings?.Count > 0;
+
+                if (certResult.CrawlResult is null)
+                {
+                    _processStep = ProcessStep.Error;
+                    _processError = certResult.Error ?? "Unknown error";
+                    UpdateLastMsgContent("⚠️ **Gagal memproses sertifikat**");
+                    var last = _messages[^1];
+                    last.AddressInfo = certResult.Address;
+                    last.Listings = new();
+                    last.CrawlError = certResult.Error ?? "Unknown error";
+                }
+                else if (certResult.CrawlResult.Success || hasListings)
+                {
+                    _selectedImage = null;
+                    _selectedImageBase64 = null;
+                    _processStep = hasListings ? ProcessStep.Done : ProcessStep.Error;
+                    var crawl = certResult.CrawlResult;
+                    var newListings = crawl.Listings ?? new();
+                    _allListings = newListings;
+                    _selectedUrls.Clear();
+
+                    // Set chat session context
+                    if (certResult.Address is not null && (!string.IsNullOrEmpty(certResult.Address.Province) || !string.IsNullOrEmpty(certResult.Address.City)))
+                    {
+                        try
+                        {
+                            var sid = _chatSessionId;
+                            if (string.IsNullOrEmpty(sid))
+                            {
+                                var sess = await ChatSvc.CreateChatSessionAsync("Certificate Chat");
+                                sid = sess.SessionId;
+                                if (string.IsNullOrEmpty(sid))
+                                {
+                                    Console.Error.WriteLine("[ChatContainer] Server mengembalikan sessionId kosong, skip context update");
+                                    sid = null;
+                                }
+                                else
+                                {
+                                    _chatSessionId = sid;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(sid))
+                            {
+                                var activeParams = new Dictionary<string, string>();
+                            if (certResult.ParamsUsed is not null)
+                            {
+                                foreach (var prop in typeof(ProcessCertificateRefineParams).GetProperties())
+                                {
+                                    var val = prop.GetValue(certResult.ParamsUsed) as string;
+                                    if (!string.IsNullOrEmpty(val)) activeParams[ToCamelCase(prop.Name)] = val;
+                                }
+                            }
+                            var cert = certResult.Certificate;
+                            await ChatSvc.UpdateSessionContextAsync(sid, new ChatContextPayload
+                            {
+                                Address = new AddressInfo
+                                {
+                                    Province = certResult.Address.Province,
+                                    City = certResult.Address.City,
+                                    District = certResult.Address.District,
+                                    SubDistrict = certResult.Address.SubDistrict,
+                                },
+                                Certificate = cert is not null ? new CertificatePayload
+                                {
+                                    JenisSertifikat = cert.JenisSertifikat,
+                                    NomorSertifikat = cert.NomorSertifikat,
+                                    NamaPemegang = cert.NamaPemegang,
+                                    Nib = cert.Nib,
+                                    LuasTanah = cert.LuasTanah,
+                                    LuasBangunan = cert.LuasBangunan,
+                                } : null,
+                                Params = activeParams,
+                            });
+                            var dims = new[] {
+                                cert?.LuasTanah is not null ? $"- Luas Tanah: {cert.LuasTanah}" : "",
+                                cert?.LuasBangunan is not null ? $"- Luas Bangunan: {cert.LuasBangunan}" : "",
+                            }.Where(s => s.Length > 0);
+                            var ctxMsg = $"[Sistem] Sertifikat sudah diproses otomatis — TIDAK perlu panggil ocr_image/process_certificate ulang.\n\nData dari OCR:\n- Provinsi: {certResult.Address.Province}\n- Kota: {certResult.Address.City}\n- Kecamatan: {certResult.Address.District}\n- Kelurahan: {certResult.Address.SubDistrict}{(dims.Any() ? $"\n{string.Join("\n", dims)}" : "")}{(cert?.JenisSertifikat is not null ? $"\n- Jenis: {cert.JenisSertifikat}" : "")}{(cert?.NomorSertifikat is not null ? $"\n- No: {cert.NomorSertifikat}" : "")}{(cert?.NamaPemegang is not null ? $"\n- Pemegang: {cert.NamaPemegang}" : "")}\n\nJika user mengoreksi salah satu field (misal nama desa), terima koreksi dan langsung gunakan — jangan minta upload ulang.\n\nParameter pencarian sudah tersimpan di konteks sesi. User akan memberikan refine parameter via chat selanjutnya.";
+
+                            _ = ChatSvc.SendChatMessageAsync(sid, ctxMsg, null, null, null, null, null, null, null, null, null, default);
+                            }
+                        }
+                        catch (Exception ctxEx)
+                        {
+                            Console.Error.WriteLine($"[ChatContainer] Gagal update session context: {ctxEx.Message}");
+                        }
+                    }
+
+                    var lastMsg = _messages[^1];
+                    lastMsg.AddressInfo = certResult.Address;
+                    lastMsg.Listings = newListings;
+                    lastMsg.CrawlUrl = crawl.Url;
+                    lastMsg.CrawlTotal = crawl.TotalListings ?? newListings.Count;
+                    lastMsg.Content = hasListings ? "✅ **Data dari Brighton.co.id**" : "⚠️ **Data dari Brighton kosong**";
+                    if (!hasListings && !string.IsNullOrEmpty(crawl.Error))
+                        lastMsg.CrawlError = crawl.Error;
+                }
+                else
+                {
+                    var cr = certResult.CrawlResult;
+                    _processStep = ProcessStep.Error;
+                    _processError = cr?.Error ?? "Crawl failed";
+                    var last = _messages[^1];
+                    last.AddressInfo = certResult.Address;
+                    last.Listings = new();
+                    last.CrawlUrl = cr?.Url;
+                    last.CrawlError = cr?.Error ?? "Unknown error";
+                    last.Content = "⚠️ **Gagal mengambil data dari Brighton**";
+                }
+            }
+            catch (Exception ex)
+            {
+                // Restore image state so user can retry without re-uploading
+                _selectedImage = restoreImage;
+                _selectedImageBase64 = restoreBase64;
+                _processStep = ProcessStep.Error;
+                _processError = ex.Message;
+                var last = _messages[^1];
+                last.Content = $"❌ **Gagal memproses sertifikat:**\n\n{ex.Message}\n\nSilakan coba lagi dengan gambar yang lebih jelas.";
+            }
+            finally
+            {
+                _isStreaming = false;
+                StateHasChanged();
+                await ScrollToBottom();
+            }
+            return;
+        }
+
+        // Text-only flow
+        var assistantMsg = new Message { Id = OrchestratorClientService.GenerateId(), Role = "assistant", Content = "" };
+        _messages.Add(assistantMsg);
+
+        try
+        {
+            var sid = _chatSessionId;
+            if (string.IsNullOrEmpty(sid))
+            {
+                var sess = await ChatSvc.CreateChatSessionAsync("RDS Chat");
+                sid = sess.SessionId;
+                if (string.IsNullOrEmpty(sid))
+                {
+                    Console.Error.WriteLine("[ChatContainer] Server mengembalikan sessionId kosong, skip chat");
+                    sid = null;
+                }
+                else
+                {
+                    _chatSessionId = sid;
+                }
+            }
+            if (string.IsNullOrEmpty(sid)) return;
+
+            _chatCts = new CancellationTokenSource();
+            var ct = _chatCts.Token;
+
+            await ChatSvc.SendChatMessageAsync(
+                sid,
+                trimmed ?? "",
+                null,
+                null,
+                onDelta: text =>
+                {
+                    var last = _messages[^1];
+                    if (last.Role == "assistant")
+                    {
+                        var isStage = last.Content?.StartsWith("🧠") == true || last.Content?.StartsWith("📦") == true
+                            || last.Content?.StartsWith("📍") == true || last.Content?.StartsWith("🏠") == true;
+                        last.Content = isStage ? text : (last.Content ?? "") + text;
+                        StateHasChanged();
+                        _ = ScrollToBottom();
+                    }
+                },
+                onStage: (stage, label) =>
+                {
+                    var last = _messages[^1];
+                    if (last.Role == "assistant" && !string.IsNullOrEmpty(stage) && (string.IsNullOrEmpty(last.Content) || last.Content.Length < 30))
+                    {
+                        last.Content = label ?? stage;
+                        StateHasChanged();
+                        _ = ScrollToBottom();
+                    }
+                },
+                onDone: (sessionId) =>
+                {
+                    _isStreaming = false;
+                    StateHasChanged();
+                    _ = ScrollToBottom();
+                },
+                onError: error =>
+                {
+                    _isStreaming = false;
+                    var last = _messages[^1];
+                    last.Content = $"❌ **Error:** {error}";
+                    StateHasChanged();
+                },
+                onListings: (listings, total, url) =>
+                {
+                    _allListings = listings;
+                    _selectedUrls.Clear();
+                    var last = _messages[^1];
+                    if (last?.Role == "assistant")
+                    {
+                        var content = last.Content ?? "";
+                        if (content.StartsWith("🧠") || content.StartsWith("🔧"))
+                            content = "";
+                        last.Content = content;
+                        last.Listings = listings;
+                        last.CrawlTotal = total;
+                        last.CrawlUrl = url;
+                    }
+                    StateHasChanged();
+                    _ = ScrollToBottom();
+                },
+                onAddress: addr => { _lastAddressInfo = addr; },
+                onMarketEstimate: me =>
+                {
+                    var last = _messages[^1];
+                    if (last?.Role == "assistant")
+                    {
+                        try
+                        {
+                            last.MarketEstimate = JsonSerializer.Deserialize<MarketEstimateResult>(me.GetRawText());
+                        }
+                        catch (Exception meEx)
+                        {
+                            Console.Error.WriteLine($"[ChatContainer] Gagal deserialize market estimate: {meEx.Message}");
+                        }
+                        StateHasChanged();
+                    }
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _isStreaming = false;
+            var last = _messages[^1];
+            last.Content = $"❌ **Gagal terhubung ke server:**\n\n{ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateLastMsg(string content)
+    {
+        if (_messages.Count > 0)
+            _messages[^1].Content = content;
+    }
+
+    private void UpdateLastMsgContent(string content)
+    {
+        if (_messages.Count > 0)
+        {
+            var last = _messages[^1];
+            last.Content = content;
+        }
+    }
+
+    private async Task HandleCrawlFormResult((List<PropertyListing> Listings, string Url, int? Total, string? Error, CrawlFormFields Fields) result)
+    {
+        _lastCrawlParams = result.Fields;
+        // Sync refine params from crawl form fields
+        _refineParams.Kt = string.IsNullOrEmpty(result.Fields.Kt) ? _refineParams.Kt : result.Fields.Kt;
+        _refineParams.Km = string.IsNullOrEmpty(result.Fields.Km) ? _refineParams.Km : result.Fields.Km;
+        _refineParams.LtMin = string.IsNullOrEmpty(result.Fields.LtMin) ? _refineParams.LtMin : result.Fields.LtMin;
+        _refineParams.LtMax = string.IsNullOrEmpty(result.Fields.LtMax) ? _refineParams.LtMax : result.Fields.LtMax;
+        _refineParams.LbMin = string.IsNullOrEmpty(result.Fields.LbMin) ? _refineParams.LbMin : result.Fields.LbMin;
+        _refineParams.LbMax = string.IsNullOrEmpty(result.Fields.LbMax) ? _refineParams.LbMax : result.Fields.LbMax;
+        _refineParams.City = string.IsNullOrEmpty(result.Fields.City) ? _refineParams.City : result.Fields.City;
+        _refineParams.District = string.IsNullOrEmpty(result.Fields.District) ? _refineParams.District : result.Fields.District;
+        _refineParams.TransactionType = string.IsNullOrEmpty(result.Fields.TransactionType) ? _refineParams.TransactionType : result.Fields.TransactionType;
+        _allListings = result.Listings;
+        _selectedUrls.Clear();
+        _currentSessionId = OrchestratorClientService.GenerateId();
+        var newMsg = new Message
+        {
+            Id = OrchestratorClientService.GenerateId(),
+            Role = "assistant",
+            Content = result.Error is not null ? "⚠️ **Gagal mengambil data dari Brighton**" : "✅ **Data dari Brighton.co.id**",
+            Listings = result.Listings,
+            CrawlUrl = result.Url,
+            CrawlTotal = result.Total ?? result.Listings.Count,
+            CrawlError = result.Error,
+        };
+        _messages.Add(newMsg);
+        StateHasChanged();
+        await ScrollToBottom();
+    }
+
+    private void HandleToggleSelect(PropertyListing listing)
+    {
+        if (_selectedUrls.Contains(listing.Url ?? ""))
+            _selectedUrls.Remove(listing.Url ?? "");
+        else
+            _selectedUrls.Add(listing.Url ?? "");
+    }
+
+    private void HandleSelectProperty(PropertyListing listing)
+    {
+        AsideSvc.Open(listing);
+    }
+
+    private async Task HandleSaveSelected()
+    {
+        var selected = _allListings.Where(l => _selectedUrls.Contains(l.Url ?? "")).ToList();
+        if (selected.Count == 0) return;
+        var sessionId = _currentSessionId ?? OrchestratorClientService.GenerateId();
+        _currentSessionId = sessionId;
+        foreach (var item in selected)
+            await SessionsSvc.AddToSessionAsync(sessionId, item, _lastAddressInfo);
+        _selectedUrls.Clear();
+    }
+
+    private async Task HandleNewChat()
+    {
+        _messages.Clear();
+        _input = "";
+        _selectedImage = null;
+        _selectedImageBase64 = null;
+        _fileError = null;
+        _processStep = ProcessStep.Idle;
+        _processError = null;
+        _lastAddressInfo = null;
+        _currentSessionId = null;
+        _chatSessionId = null;
+        _lastCrawlParams = null;
+        _refineParams = new();
+        _selectedUrls.Clear();
+        _allListings.Clear();
+        _isStreaming = false;
+        _chatCts?.Cancel();
+        _chatCts?.Dispose();
+        _chatCts = null;
+    }
+
+    private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    };
+
+    private async Task HandleImageSelect(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount == 0) return;
+        var file = e.File;
+        _fileError = null;
+
+        if (!AllowedImageTypes.Contains(file.ContentType))
+        {
+            _fileError = $"Format file tidak didukung: {file.ContentType}. Hanya file JPEG, PNG, dan WebP yang diizinkan.";
+            StateHasChanged();
+            return;
+        }
+        _processStep = ProcessStep.Idle;
+        _processError = null;
+        _lastAddressInfo = null;
+        _currentSessionId = null;
+        _lastCrawlParams = null;
+        _selectedUrls.Clear();
+        _allListings.Clear();
+
+        // Read as base64
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        _selectedImageBase64 = Convert.ToBase64String(bytes);
+        _selectedImage = $"data:{file.ContentType};base64,{_selectedImageBase64}";
+    }
+
+    private void ClearImage()
+    {
+        _selectedImage = null;
+        _selectedImageBase64 = null;
+        _fileError = null;
+        _processStep = ProcessStep.Idle;
+        _processError = null;
+        _lastAddressInfo = null;
+        _currentSessionId = null;
+        _lastCrawlParams = null;
+        _refineParams = new();
+        _selectedUrls.Clear();
+        _allListings.Clear();
+    }
+
+    private async Task TriggerFileInput()
+    {
+        await _js.InvokeVoidAsync("eval", "document.getElementById('chat-file-input').click()");
+    }
+
+    private void ClearFileError()
+    {
+        _fileError = null;
+    }
+
+    private static string ToCamelCase(string s)
+        => char.ToLowerInvariant(s[0]) + s[1..];
+
+    [Inject]
+    private IJSRuntime _js { get; set; } = default!;
+
+    public async ValueTask DisposeAsync()
+    {
+        _chatCts?.Cancel();
+        _chatCts?.Dispose();
+    }
+}
