@@ -30,9 +30,16 @@
         <div class="ml-auto flex w-full flex-wrap items-center justify-end gap-2 md:w-auto md:flex-nowrap">
             <BaseInlineSearchInput Placeholder="Search menu or appraisal..." Class="md:w-72" />
 
-            <button class="grid h-9 w-9 place-items-center rounded-xl border text-xs font-black"
-                style="border-color: var(--theme-panel-border); background: var(--theme-panel-soft-bg); color: var(--theme-text-muted);"
-                title="Notifications">N</button>
+            <button type="button"
+                    class="grid h-9 w-9 place-items-center rounded-xl border transition"
+                    style="border-color: var(--theme-panel-border); background: var(--theme-panel-soft-bg); color: var(--theme-text-muted);"
+                    title="Notifications"
+                    aria-label="Notifications">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M10 2.75a4.25 4.25 0 0 0-4.25 4.25v1.2c0 .7-.22 1.38-.62 1.95L4.2 11.9a1.1 1.1 0 0 0 .9 1.75h9.8a1.1 1.1 0 0 0 .9-1.75l-.93-1.75a3.5 3.5 0 0 1-.62-1.95v-1.2A4.25 4.25 0 0 0 10 2.75Z" stroke-linejoin="round"></path>
+                    <path d="M8.1 14.85a2.1 2.1 0 0 0 3.8 0" stroke-linecap="round"></path>
+                </svg>
+            </button>
 
             <AuthorizeView>
                 <Authorized Context="authState">
