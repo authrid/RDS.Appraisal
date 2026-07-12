@@ -1,0 +1,82 @@
+@using AppraisalSystem.Application.Features.ChatUI
+<div class="rounded-lg border bg-muted/20">
+    <div role="button" tabindex="0" @onclick="Toggle" @onkeydown="HandleKeyDown" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-muted/50">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="@($"size-3 shrink-0 transition-transform {(!_open ? "-rotate-90" : "")}")">
+            <path d="m6 9 6 6 6-6" />
+        </svg>
+        <span class="truncate">@Session.Label</span>
+        <span class="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.55rem] font-medium text-primary">@Session.Listings.Count</span>
+        <button type="button" @onclick:stopPropagation @onclick="(e) => { OnRemoveSession.InvokeAsync(Session.Id); }" class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="@($"Hapus sesi {Session.Label}")">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
+        </button>
+    </div>
+    @if (_open)
+    {
+        <div class="px-3 pb-3">
+            @if (Session.Listings.Count == 0)
+            {
+                <p class="py-2 text-center text-[0.6rem] text-muted-foreground">Tidak ada properti</p>
+            }
+            else
+            {
+                <div class="gap-2 grid grid-cols-2 grid-rows-2">
+                    @foreach (var item in Session.Listings)
+                    {
+                        <div class="group relative overflow-hidden rounded-lg border bg-background transition-all hover:border-primary/30">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <div class="relative aspect-video overflow-hidden bg-muted">
+                                    <img src="@item.ImageUrl" alt="@item.Title" class="size-full object-cover" loading="lazy" />
+                                    @if (!string.IsNullOrEmpty(item.Price))
+                                    {
+                                        <div class="absolute right-0 bottom-0 left-0 p-2 pt-6" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                                            <span class="text-xs font-bold text-white drop-shadow-sm">@item.Price</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            <div class="p-2.5">
+                                <p class="line-clamp-2 text-xs leading-snug font-semibold">@(!string.IsNullOrEmpty(item.Title) ? item.Title : (item.Description?.Length > 50 ? item.Description[..50] : item.Description ?? "Properti"))</p>
+                                @if (!string.IsNullOrEmpty(item.Lt) || !string.IsNullOrEmpty(item.Lb) || !string.IsNullOrEmpty(item.Kt) || !string.IsNullOrEmpty(item.Km))
+                                {
+                                    <div class="mt-1.5 flex flex-wrap gap-1.5">
+                                        @if (!string.IsNullOrEmpty(item.Lt)) { <span class="rounded bg-muted px-1.5 py-0.5 text-[0.55rem] font-medium text-muted-foreground">LT @item.Lt</span> }
+                                        @if (!string.IsNullOrEmpty(item.Lb)) { <span class="rounded bg-muted px-1.5 py-0.5 text-[0.55rem] font-medium text-muted-foreground">LB @item.Lb</span> }
+                                        @if (!string.IsNullOrEmpty(item.Kt)) { <span class="rounded bg-muted px-1.5 py-0.5 text-[0.55rem] font-medium text-muted-foreground">KT @item.Kt</span> }
+                                        @if (!string.IsNullOrEmpty(item.Km)) { <span class="rounded bg-muted px-1.5 py-0.5 text-[0.55rem] font-medium text-muted-foreground">KM @item.Km</span> }
+                                    </div>
+                                }
+                                <button type="button" @onclick="() => OnRemoveListing.InvokeAsync((Session.Id, item.Url ?? string.Empty))" class="mt-2 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[0.6rem] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" aria-label="@($"Remove {item.Title}")">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-2.5">
+                                        <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                    </svg>
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SavedSession Session { get; set; } = default!;
+    [Parameter] public EventCallback<(string SessionId, string Url)> OnRemoveListing { get; set; }
+    [Parameter] public EventCallback<string> OnRemoveSession { get; set; }
+
+    private bool _open = true;
+
+    private void Toggle() => _open = !_open;
+
+    private void HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            _open = !_open;
+        }
+    }
+}

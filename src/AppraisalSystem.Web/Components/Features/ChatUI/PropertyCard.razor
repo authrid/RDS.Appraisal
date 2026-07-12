@@ -1,0 +1,228 @@
+﻿@using AppraisalSystem.Application.Features.ChatUI
+@using AppraisalSystem.Web.Components.Features.ChatUI.Base
+
+<div class="@($"group overflow-hidden rounded-xl border border-slate-200 bg-white transition-all duration-200 hover:border-primary/30 hover:shadow-md {(_selected ? "border-primary/40 ring-2 ring-primary/50" : "")}")">
+    @if (!string.IsNullOrEmpty(listing.ImageUrl))
+    {
+        <div class="relative overflow-hidden bg-muted cursor-pointer" style="aspect-ratio: 16 / 10;" @onclick="() => OnSelect.InvokeAsync(listing)">
+            <img src="@listing.ImageUrl" alt="@titleDisplay" class="size-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+            @if (!string.IsNullOrEmpty(priceDisplay))
+            {
+                <div class="absolute right-0 bottom-0 left-0 p-3 pt-8" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                    <span class="text-base leading-none font-bold text-white drop-shadow-sm">@priceDisplay</span>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(typeDisplay))
+            {
+                <span class="absolute top-2 right-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.65rem] font-medium tracking-wide uppercase backdrop-blur-sm" style="background: var(--background, rgba(255,255,255,0.8)); color: var(--foreground);">
+                    @typeDisplay
+                </span>
+            }
+            @if (OnToggleSelect.HasDelegate)
+            {
+                <button type="button" @onclick:stopPropagation @onclick="() => OnToggleSelect.InvokeAsync(listing)" class="@($"absolute top-2 left-2 flex size-6 items-center justify-center rounded-full border-2 backdrop-blur-sm transition-all {(_selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40 hover:border-primary/60")}")" style="background: rgba(255,255,255,0.8);">
+                    @if (_selected)
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                    }
+                    else
+                    {
+                        <span class="size-2 rounded-full bg-transparent" />
+                    }
+                </button>
+            }
+        </div>
+    }
+
+    <div class="@($"space-y-3 {(!string.IsNullOrEmpty(listing.ImageUrl) ? "p-4" : "p-4 pt-5")}")">
+        <div class="cursor-pointer" @onclick="() => OnSelect.InvokeAsync(listing)">
+            <h3 class="line-clamp-2 pt-2 text-sm leading-snug font-semibold">@titleDisplay</h3>
+            @if (!string.IsNullOrEmpty(listing.Description))
+            {
+                <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">@listing.Description</p>
+            }
+        </div>
+
+        @if (hasSpecs)
+        {
+            <div class="grid grid-cols-2 gap-1.5">
+                @if (!string.IsNullOrEmpty(listing.Lt))
+                {
+                    <SpecBadge Icon="RulerIconSvg()" Label="LT" Value="@listing.Lt" />
+                }
+                @if (!string.IsNullOrEmpty(listing.Lb))
+                {
+                    <SpecBadge Icon="RulerIconSvg()" Label="LB" Value="@listing.Lb" />
+                }
+                @if (!string.IsNullOrEmpty(listing.Kt))
+                {
+                    <SpecBadge Icon="BedIconSvg()" Label="KT" Value="@listing.Kt" />
+                }
+                @if (!string.IsNullOrEmpty(listing.Km))
+                {
+                    <SpecBadge Icon="BathIconSvg()" Label="KM" Value="@listing.Km" />
+                }
+            </div>
+        }
+
+        <CollapsibleDetail Title="Detail Property" DefaultOpen="false">
+            @if (!string.IsNullOrEmpty(listing.Certificate) || !string.IsNullOrEmpty(listing.Floor) || !string.IsNullOrEmpty(listing.Electricity) || !string.IsNullOrEmpty(listing.Furnished) || !string.IsNullOrEmpty(listing.Facing))
+            {
+                <div class="grid grid-cols-2 gap-1.5">
+                    @if (!string.IsNullOrEmpty(listing.Certificate))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 📜")' Label="Sertifikat" Value="@listing.Certificate" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.Floor))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🏗️")' Label="Lantai" Value="@listing.Floor" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.Electricity))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" ⚡")' Label="Listrik" Value="@listing.Electricity" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.Furnished))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🛋️")' Label="Furnish" Value="@listing.Furnished" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.Facing))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🧭")' Label="Hadap" Value="@listing.Facing" />
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(listing.Transaction) || !string.IsNullOrEmpty(listing.GroupDetail) || !string.IsNullOrEmpty(listing.Garage) || !string.IsNullOrEmpty(listing.IdListing))
+            {
+                <div class="grid grid-cols-2 gap-1.5">
+                    @if (!string.IsNullOrEmpty(listing.Transaction))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🔄")' Label="Transaksi" Value="@listing.Transaction" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.GroupDetail))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 📋")' Label="Group" Value="@listing.GroupDetail" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.Garage))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🚗")' Label="Garasi" Value="@listing.Garage" />
+                    }
+                    @if (!string.IsNullOrEmpty(listing.IdListing))
+                    {
+                        <SpecBadge Icon='@EmojiSpan(" 🏷️")' Label="ID" Value="@listing.IdListing" />
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(listing.AddressDetail) || !string.IsNullOrEmpty(listing.LocationDetail) || !string.IsNullOrEmpty(listing.ListedDate))
+            {
+                <div class="space-y-1 rounded-lg px-2.5 py-2 text-[0.65rem] leading-relaxed text-muted-foreground" style="background: var(--muted, rgba(0,0,0,0.04));">
+                    @if (!string.IsNullOrEmpty(listing.AddressDetail))
+                    {
+                        <div class="flex items-start gap-1.5"><span class="mt-0.5 shrink-0">📍</span><span>@listing.AddressDetail</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(listing.LocationDetail))
+                    {
+                        <div class="flex items-start gap-1.5"><span class="mt-0.5 shrink-0">🗺️</span><span>@listing.LocationDetail</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(listing.ListedDate))
+                    {
+                        <div class="flex items-center gap-1.5"><span class="shrink-0">📅</span><span>Terdaftar: @listing.ListedDate</span></div>
+                    }
+                </div>
+            }
+        </CollapsibleDetail>
+
+        @if (OnToggleSelect.HasDelegate)
+        {
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        @onclick="() => OnToggleSelect.InvokeAsync(listing)"
+                        class="@($"flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.6rem] font-medium transition-colors {(_selected ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted")}")">
+                    <span class="@($"flex size-3.5 items-center justify-center rounded border transition-colors {(_selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40")}")">
+                        @if (_selected)
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-2.5">
+                                <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                        }
+                    </span>
+                    @(_selected ? "Terpilih" : "Pilih")
+                </button>
+            </div>
+        }
+
+        <div class="flex items-center justify-between gap-2 border-t pt-2.5">
+            @if (!string.IsNullOrEmpty(listing.Date))
+            {
+                <span class="flex items-center gap-1 text-[0.65rem] text-muted-foreground">📅 @listing.Date</span>
+            }
+            else
+            {
+                <span />
+            }
+            @if (!string.IsNullOrEmpty(listing.Url))
+            {
+                <a href="@listing.Url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80">
+                    Lihat detail
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
+                        <path d="M15 3h6v6" />
+                        <path d="M10 14 21 3" />
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    </svg>
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PropertyListing Listing { get; set; } = default!;
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public EventCallback<PropertyListing> OnToggleSelect { get; set; }
+    [Parameter] public EventCallback<PropertyListing> OnSelect { get; set; }
+
+    private PropertyListing listing => Listing;
+    private bool _selected => Selected;
+
+    private string priceDisplay => listing.Price ?? "";
+    private string typeDisplay => listing.Type ?? "";
+    private string titleDisplay => !string.IsNullOrEmpty(listing.Title) ? listing.Title : (listing.Description?.Length > 60 ? listing.Description[..60] : listing.Description ?? "Properti");
+    private bool hasSpecs => !string.IsNullOrEmpty(listing.Lt) || !string.IsNullOrEmpty(listing.Lb) || !string.IsNullOrEmpty(listing.Kt) || !string.IsNullOrEmpty(listing.Km);
+
+    private RenderFragment RulerIconSvg() => __builder =>
+    {
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0 text-muted-foreground">
+            <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z" />
+            <path d="m14.5 12.5 2-2" />
+            <path d="m11.5 9.5 2-2" />
+            <path d="m8.5 6.5 2-2" />
+            <path d="m17.5 15.5 2-2" />
+        </svg>
+    };
+
+    private RenderFragment BedIconSvg() => __builder =>
+    {
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0 text-muted-foreground">
+            <path d="M2 4v16" />
+            <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+            <path d="M2 17h20" />
+            <path d="M6 8v9" />
+        </svg>
+    };
+
+    private RenderFragment BathIconSvg() => __builder =>
+    {
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0 text-muted-foreground">
+            <path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1Z" />
+            <path d="M6 12V5a2 2 0 0 1 2-2h3v2.25" />
+            <path d="M4 21l1-1.5" />
+            <path d="M20 21l-1-1.5" />
+        </svg>
+    };
+
+    private static RenderFragment EmojiSpan(string emoji) => __builder =>
+    {
+        <span class="text-[0.6rem]">@emoji</span>
+    };
+}

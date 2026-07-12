@@ -1,0 +1,11 @@
+﻿<div class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5" style="background: var(--muted, rgba(0,0,0,0.04));">
+    <span class="shrink-0 text-muted-foreground">@Icon</span>
+    <span class="text-xs text-muted-foreground">@Label</span>
+    <span class="ml-auto text-xs font-semibold">@Value</span>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? Icon { get; set; }
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+}

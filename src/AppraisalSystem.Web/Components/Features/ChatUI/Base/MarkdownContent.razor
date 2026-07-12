@@ -1,0 +1,162 @@
+@using System.Text.RegularExpressions
+@using System.Web
+
+@{
+    var html = RenderMarkdown(Content);
+}
+
+@((MarkupString)html)
+
+@code {
+    [Parameter] public string Content { get; set; } = "";
+
+    private static string RenderMarkdown(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n').ToList();
+        var html = new System.Text.StringBuilder();
+        var i = 0;
+
+        while (i < lines.Count)
+        {
+            var line = lines[i];
+
+            // Table
+            if (line.TrimStart().StartsWith('|') && i + 1 < lines.Count && lines[i + 1].TrimStart().StartsWith('|') && lines[i + 1].Contains("---"))
+            {
+                html.Append("<div class=\"my-3 w-full overflow-x-auto rounded-lg border\"><table class=\"w-full border-collapse text-sm\">");
+                // Header row
+                html.Append("<thead class=\"bg-muted/60\"><tr>");
+                foreach (var cell in ParseTableRow(line))
+                    html.Append($"<th class=\"px-3 py-2 text-left font-semibold text-foreground\">{RenderInline(cell)}</th>");
+                html.Append("</tr></thead><tbody class=\"divide-y divide-border\">");
+                i += 2; // skip separator
+                while (i < lines.Count && lines[i].TrimStart().StartsWith('|'))
+                {
+                    html.Append("<tr class=\"transition-colors hover:bg-muted/30\">");
+                    foreach (var cell in ParseTableRow(lines[i]))
+                        html.Append($"<td class=\"px-3 py-2 text-muted-foreground\">{RenderInline(cell)}</td>");
+                    html.Append("</tr>");
+                    i++;
+                }
+                html.Append("</tbody></table></div>");
+                continue;
+            }
+
+            // Code block
+            if (line.TrimStart().StartsWith("```"))
+            {
+                var lang = line.TrimStart()[3..].Trim();
+                var code = new System.Text.StringBuilder();
+                i++;
+                while (i < lines.Count && !lines[i].TrimStart().StartsWith("```"))
+                {
+                    code.AppendLine(HttpUtility.HtmlEncode(lines[i]));
+                    i++;
+                }
+                html.Append($"<pre class=\"my-2 overflow-x-auto rounded-lg bg-muted-foreground/10 p-4 text-sm\"><code>{(lang.Length > 0 ? $"<span class=\"text-xs text-muted-foreground\">{lang}</span>\n" : "")}{code}</code></pre>");
+                i++;
+                continue;
+            }
+
+            // Headings
+            var headingMatch = Regex.Match(line, @"^(#{1,3})\s+(.+)$");
+            if (headingMatch.Success)
+            {
+                var level = headingMatch.Groups[1].Length;
+                var hContent = RenderInline(headingMatch.Groups[2].Value);
+                html.Append($"<h{level} class=\"mb-2 mt-4 font-semibold\">{hContent}</h{level}>");
+                i++;
+                continue;
+            }
+
+            // Horizontal rule
+            if (Regex.IsMatch(line.Trim(), @"^[-*_]{3,}$"))
+            {
+                html.Append("<hr class=\"my-4 border-t\" />");
+                i++;
+                continue;
+            }
+
+            // Unordered list
+            if (Regex.IsMatch(line.TrimStart(), @"^[\*\-\+]\s"))
+            {
+                html.Append("<ul class=\"mb-2 list-disc pl-6 last:mb-0\">");
+                while (i < lines.Count && Regex.IsMatch(lines[i].TrimStart(), @"^[\*\-\+]\s"))
+                {
+                    var item = Regex.Replace(lines[i].TrimStart(), @"^[\*\-\+]\s", "");
+                    html.Append($"<li class=\"mb-1\">{RenderInline(item)}</li>");
+                    i++;
+                }
+                html.Append("</ul>");
+                continue;
+            }
+
+            // Ordered list
+            if (Regex.IsMatch(line.TrimStart(), @"^\d+[\.\)]\s"))
+            {
+                html.Append("<ol class=\"mb-2 list-decimal pl-6 last:mb-0\">");
+                while (i < lines.Count && Regex.IsMatch(lines[i].TrimStart(), @"^\d+[\.\)]\s"))
+                {
+                    var item = Regex.Replace(lines[i].TrimStart(), @"^\d+[\.\)]\s", "");
+                    html.Append($"<li class=\"mb-1\">{RenderInline(item)}</li>");
+                    i++;
+                }
+                html.Append("</ol>");
+                continue;
+            }
+
+            // Empty line
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                i++;
+                continue;
+            }
+
+            // Paragraph
+            html.Append($"<p class=\"mb-2 leading-relaxed last:mb-0\">{RenderInline(line)}</p>");
+            i++;
+        }
+
+        return html.ToString();
+    }
+
+    private static string RenderInline(string text)
+    {
+        text = HttpUtility.HtmlEncode(text);
+
+        // Images ![alt](url)
+        text = Regex.Replace(text, @"!\[([^\]]*)\]\(([^)]+)\)", m =>
+        {
+            var alt = m.Groups[1].Value;
+            var src = m.Groups[2].Value;
+            return $"<img src=\"{HttpUtility.HtmlAttributeEncode(src)}\" alt=\"{HttpUtility.HtmlAttributeEncode(alt)}\" class=\"my-2 max-h-80 rounded-lg object-cover\" loading=\"lazy\" />";
+        });
+
+        // Links [text](url)
+        text = Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", m =>
+        {
+            var linkText = m.Groups[1].Value;
+            var url = m.Groups[2].Value;
+            return $"<a href=\"{HttpUtility.HtmlAttributeEncode(url)}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"font-medium underline decoration-primary/40 underline-offset-2 transition-colors hover:decoration-primary\">{linkText}</a>";
+        });
+
+        // Bold **text** or __text__
+        text = Regex.Replace(text, @"\*\*(.+?)\*\*|__(.+?)__", "<strong>$1$2</strong>");
+
+        // Italic *text* or _text_
+        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|(?<!_)_(?!_)(.+?)(?<!_)_(?!_)", "<em>$1$2</em>");
+
+        // Inline code `text`
+        text = Regex.Replace(text, @"`([^`]+)`", "<code class=\"rounded bg-muted-foreground/10 px-1.5 py-0.5 font-mono text-sm\">$1</code>");
+
+        // Strikethrough ~~text~~
+        text = Regex.Replace(text, @"~~(.+?)~~", "<del>$1</del>");
+
+        return text;
+    }
+
+    private static string[] ParseTableRow(string row)
+    {
+        return row.Trim('|').Split('|').Select(c => c.Trim()).ToArray();
+    }
+}

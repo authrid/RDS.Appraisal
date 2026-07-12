@@ -6,6 +6,7 @@ using AppraisalSystem.Web;
 using AppraisalSystem.Web.Authentication;
 using AppraisalSystem.Web.Components;
 using AppraisalSystem.Web.Options;
+using AppraisalSystem.Web.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -64,6 +65,15 @@ builder.Services
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
+
+builder.Services.AddScoped<PropertyAsideService>();
+builder.Services.AddScoped<SavedSessionsService>();
+builder.Services.AddScoped<OrchestratorClientService>();
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri("http://localhost:4001"
+                          ?? throw new InvalidOperationException("Config 'ClientSettings.Orchestrator.BaseUrl' belum di-set"))
+});
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("StartupDiagnostics");

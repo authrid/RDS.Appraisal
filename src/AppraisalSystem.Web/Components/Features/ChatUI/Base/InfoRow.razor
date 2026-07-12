@@ -1,0 +1,9 @@
+﻿<div class="flex items-center justify-between border-t pt-2 text-sm">
+    <span class="text-muted-foreground">@Label</span>
+    <span class="font-medium">@Value</span>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+}

@@ -1,0 +1,26 @@
+﻿<div class="space-y-2">
+    <button type="button" @onclick="Toggle" class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors" style="background: var(--muted, rgba(0,0,0,0.04)); color: var(--muted-foreground);">
+        <span>@Title</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="@($"size-3.5 transition-transform duration-200 {(_open ? "rotate-180" : "")}")">
+            <path d="m6 9 6 6 6-6" />
+        </svg>
+    </button>
+    <div class="@($"overflow-hidden transition-all duration-200 {(_open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}")">
+        <div class="space-y-2">@ChildContent</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool DefaultOpen { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _open;
+
+    protected override void OnInitialized()
+    {
+        _open = DefaultOpen;
+    }
+
+    private void Toggle() => _open = !_open;
+}

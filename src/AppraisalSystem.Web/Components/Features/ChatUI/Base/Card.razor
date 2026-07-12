@@ -1,0 +1,8 @@
+<div data-slot="card" class="@($"rounded-lg border bg-card text-card-foreground shadow-xs {Class}")">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+}
